@@ -1,5 +1,0 @@
-I hate all the manga/comic reading apps for Linux, they all suck and the only good one is mangareader. The one i have in windows is very nice and organizes everything pretty well.
-
-i have no idea yet how i want to develop this but maybe i can use what i learn from the manga library app by the time i get here.
-
-this will be the start of a terminal based manga reader using golang.
