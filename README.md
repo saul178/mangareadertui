@@ -40,4 +40,4 @@ Main/file/path/tree2
 - [ ] if possible allow an image preview while selecting something to read
 
 # Prototype Visualization
-![prototype](./tests/mangatuidesignidea.png)
+![prototype](./imgs/mangatuidesignidea.png)
