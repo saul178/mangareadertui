@@ -1,5 +1,29 @@
 I hate all the manga/comic reading apps for Linux, they all suck and the only good one is mangareader. The one I have in windows is very nice and organizes everything pretty well.
 
-I have no idea yet how I want to develop this but maybe I can use what I learn from the manga library app by the time I get here.
-
 this will be the start of a terminal based manga reader using golang.
+
+This tui application mains focus will be to just be used only for local collection.
+
+- App should allow for more than one filepath for local collection
+[ ] get familiar with the bubble tea framework or look into tview
+[ ] understand how we can render images on the terminal
+
+# App desired functionality
+[ ] Search and filter local collection.
+[ ] have collection separated by which filepath is imported
+[ ] allow more then one filepath for multiple collections
+## Example
+```
+Main File tree
+├── series subtree 1
+│   ├── somecbz1
+│   ├── somecbz2
+│   ├── somecbz3
+├── series subtree 2
+│   ├── somecbz1
+│   ├── somecbz2
+│   ├── somecbz3
+```
+[ ] image rendering will be the hardest so look into that
+[ ] if possible allow an image preview while selecting something to read
+
