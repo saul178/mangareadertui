@@ -1,8 +1,8 @@
+# Description
 I hate all the manga/comic reading apps for Linux, they all suck and the only good one is mangareader. The one I have in windows is very nice and organizes everything pretty well.
-
 this will be the start of a terminal based manga reader using golang.
 
-This tui application mains focus will be to just be used only for local collection.
+This tui application main focus will be to just be used only for local collection.
 
 # TODO:
 - [ ] get familiar with the bubble tea framework or look into tview
@@ -16,12 +16,22 @@ App should allow for more than one filepath for local collection
 - [ ] allow more then one filepath for multiple collections
 ## Example
 ```
-Main File tree
-├── series subtree 1
+Main/file/path/tree1
+├── series-subtree-1/
 │   ├── somecbz1
 │   ├── somecbz2
 │   ├── somecbz3
-├── series subtree 2
+├── series/subtree2/
+│   ├── somecbz1
+│   ├── somecbz2
+│   ├── somecbz3
+
+Main/file/path/tree2
+├── series/subtree1/
+│   ├── somecbz1
+│   ├── somecbz2
+│   ├── somecbz3
+├── series/subtree2/
 │   ├── somecbz1
 │   ├── somecbz2
 │   ├── somecbz3
