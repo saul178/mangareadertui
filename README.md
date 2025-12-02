@@ -38,3 +38,6 @@ Main/file/path/tree2
 ```
 - [ ] image rendering will be the hardest so look into that
 - [ ] if possible allow an image preview while selecting something to read
+
+# Prototype Visualization
+![prototype](./tests/mangatuidesignidea.png)
