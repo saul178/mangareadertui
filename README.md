@@ -4,14 +4,16 @@ this will be the start of a terminal based manga reader using golang.
 
 This tui application mains focus will be to just be used only for local collection.
 
-- App should allow for more than one filepath for local collection
-[ ] get familiar with the bubble tea framework or look into tview
-[ ] understand how we can render images on the terminal
+# TODO:
+- [ ] get familiar with the bubble tea framework or look into tview
+- [ ] understand how we can render images on the terminal
+- [ ] research alternative paths just incase tui idea is not possible with golang
 
 # App desired functionality
-[ ] Search and filter local collection.
-[ ] have collection separated by which filepath is imported
-[ ] allow more then one filepath for multiple collections
+App should allow for more than one filepath for local collection
+- [ ] Search and filter local collection.
+- [ ] have collection separated by which filepath is imported
+- [ ] allow more then one filepath for multiple collections
 ## Example
 ```
 Main File tree
@@ -24,6 +26,5 @@ Main File tree
 │   ├── somecbz2
 │   ├── somecbz3
 ```
-[ ] image rendering will be the hardest so look into that
-[ ] if possible allow an image preview while selecting something to read
-
+- [ ] image rendering will be the hardest so look into that
+- [ ] if possible allow an image preview while selecting something to read
