@@ -13,7 +13,6 @@ This tui application main focus will be to just be used only for local collectio
 App should allow for more than one filepath for local collection
 - [ ] Search and filter local collection.
 - [ ] have collection separated by which filepath is imported
-- [ ] allow more then one filepath for multiple collections
 ## Example
 ```
 Main/file/path/tree1
