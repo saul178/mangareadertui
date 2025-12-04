@@ -5,6 +5,8 @@ this will be the start of a terminal based manga reader using golang.
 This tui application main focus will be to just be used only for local collection.
 
 # TODO:
+- [ ] implement search/filter component
+- [ ] implement file tree/picker component
 - [ ] get familiar with the bubble tea framework or look into tview
 - [ ] understand how we can render images on the terminal
 - [ ] research alternative paths just incase tui idea is not possible with golang
@@ -39,4 +41,4 @@ Main/file/path/tree2
 - [ ] if possible allow an image preview while selecting something to read
 
 # Prototype Visualization
-![prototype](./imgs/mangatuidesignidea.png)
+![prototype](./docs/mangatuidesignidea.png)
