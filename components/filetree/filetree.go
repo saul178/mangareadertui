@@ -3,7 +3,6 @@ package filetree
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -14,18 +13,19 @@ import (
 
 const cbzExt = ".cbz"
 
-var ErrGettingHomeDir string = "Error getting home directoru: %v\n"
+var errGettingHomeDir error = errors.New("Error getting home directory")
 
 type (
+	clearErrMsg   struct{}
 	FileTreeModel struct {
 		filepicker   filepicker.Model
 		selectedFile string
 		toggle       bool
 		err          error
 	}
-	clearErrMsg    struct{}
-	cbzSelectedMsg string
 )
+
+type cbzSelectedMsg string
 
 func clearErrorAfter(t time.Duration) tea.Cmd {
 	return tea.Tick(t, func(_ time.Time) tea.Msg {
@@ -34,19 +34,6 @@ func clearErrorAfter(t time.Duration) tea.Cmd {
 }
 
 func (ftm FileTreeModel) Init() tea.Cmd {
-	fp := filepicker.New()
-	fp.AllowedTypes = []string{cbzExt}
-	fp.ShowHidden = true
-
-	// NOTE: for now this will just be set to the home dir until i get the config side going
-	// TODO: handle the error better by defaulting to their home path if the config isn't set
-	var err error
-	fp.CurrentDirectory, err = os.UserHomeDir()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, ErrGettingHomeDir, err)
-	}
-
-	ftm.filepicker = fp
 	return ftm.filepicker.Init()
 }
 
@@ -80,6 +67,7 @@ func (ftm FileTreeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (ftm FileTreeModel) View() string {
 	// if ftm.Toggle {
+	//
 	// 	return ""
 	// }
 
@@ -94,4 +82,20 @@ func (ftm FileTreeModel) View() string {
 	}
 	s.WriteString("\n\n" + ftm.filepicker.View() + "\n")
 	return s.String()
+}
+
+func NewFileTreeModel() (FileTreeModel, error) {
+	fp := filepicker.New()
+	fp.AllowedTypes = []string{cbzExt}
+	fp.ShowHidden = true
+
+	// NOTE: for now this will just be set to the home dir until i get the config side going
+	// TODO: handle the error better by defaulting to their home path if the config isn't set
+	defaultDir, err := os.UserHomeDir()
+	if err != nil {
+		return FileTreeModel{}, errors.Join(errGettingHomeDir, err)
+	}
+
+	fp.CurrentDirectory = defaultDir
+	return FileTreeModel{filepicker: fp}, nil
 }
