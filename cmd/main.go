@@ -31,10 +31,11 @@ type mainAppModel struct {
 	// statusBar statusBar.Model
 
 	// NOTE: Main application state
-	activeComp appComponents // tracks which component is focused on
-	width      int
-	height     int
-	err        error // report any errors encountered
+	activeComp         appComponents // tracks which component is focused on
+	toggleFileTreeComp bool
+	width              int
+	height             int
+	err                error // report any errors encountered
 }
 
 // TODO: this will initialize all subcomponents
@@ -49,7 +50,6 @@ func (mam mainAppModel) Init() tea.Cmd {
 // TODO: Main application Update: Delegates messages and handles custom messages.
 // depending on which component is selected
 func (mam mainAppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// var cmd tea.Cmd
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {

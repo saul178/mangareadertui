@@ -9,23 +9,26 @@ import (
 
 	"github.com/charmbracelet/bubbles/filepicker"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/saul178/mangareadertui/internal/config"
 )
 
 const cbzExt = ".cbz"
 
+type cbzSelectedMsg string
+
 var errGettingHomeDir error = errors.New("Error getting home directory")
 
-type (
-	clearErrMsg   struct{}
-	FileTreeModel struct {
-		filepicker   filepicker.Model
-		selectedFile string
-		toggle       bool
-		err          error
-	}
-)
+type FileTreeModel struct {
+	filepicker         filepicker.Model
+	config             config.TuiConfig
+	collectionRootPath string
+	selectedPath       string
+	expanded           bool
+	currentEntries     []os.DirEntry
+	err                error
+}
 
-type cbzSelectedMsg string
+type clearErrMsg struct{}
 
 func clearErrorAfter(t time.Duration) tea.Cmd {
 	return tea.Tick(t, func(_ time.Time) tea.Msg {
