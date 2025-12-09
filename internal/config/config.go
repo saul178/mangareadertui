@@ -25,66 +25,60 @@ func DefaultConfig() *TuiConfig {
 }
 
 // TODO: this is bugged and exits out early before even creating a directory, causing it to fail
-func isConfigExist() (bool, error) {
+func getConfigFile() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return false, fmt.Errorf("couldnt find users home directory: %v\n", err)
+		return "", fmt.Errorf("couldn't find users home directory: %w:\n", err)
 	}
 
-	targetPath := filepath.Join(homeDir, tuiConfigPath)
-
-	info, err := os.Stat(targetPath)
-	if os.IsNotExist(err) {
-		return false, fmt.Errorf("directory does not exist: %v\n", os.ErrNotExist)
-	}
-
-	if err != nil {
-		return false, fmt.Errorf("far worse error: %v", err)
-	}
-
-	if !info.IsDir() {
-		return false, fmt.Errorf("path exist but is not a valid directory: %v\n", err)
-	}
-	return true, nil
+	configFilePath := filepath.Join(homeDir, tuiConfigPath, configFile)
+	return configFilePath, nil
 }
 
-func createConfigFile(path string) error {
-	if err := os.MkdirAll(path, 0o755); err != nil {
-		return fmt.Errorf("failed to create configuration path: %v", err)
-	}
-	fullPath := filepath.Join(path + configFile)
-
-	var config TuiConfig
-	jsonBytes, err := json.MarshalIndent(&config, "", "  ")
+func LoadConfig() (*TuiConfig, error) {
+	cfgFile, err := getConfigFile()
 	if err != nil {
-		return fmt.Errorf("failed to encode json: %v", err)
+		return nil, fmt.Errorf("could not locate users config: %w\n", err)
+	}
+	configDir := filepath.Dir(cfgFile)
+
+	// 1 make sure config dir exists
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
+		return nil, fmt.Errorf("failed to create mangareadertui config directory: %w\n", err)
 	}
 
-	if err := os.WriteFile(fullPath, jsonBytes, 0o755); err != nil {
-		return fmt.Errorf("failed to write to json: %v", err)
+	// 2 try to read the config.json
+	data, err := os.ReadFile(cfgFile)
+	if os.IsNotExist(err) {
+		cfg := DefaultConfig()
+		if saveErr := SaveConfig(cfg); saveErr != nil {
+			return nil, fmt.Errorf("failed to save default config: %w\n", saveErr)
+		}
+		return cfg, nil
+	}
+
+	// 3 unmarshall the data
+	var tuiCfg TuiConfig
+	if err := json.Unmarshal(data, &tuiCfg); err != nil {
+		return nil, fmt.Errorf("failed to parse json config file %w:\n", err)
+	}
+	return &tuiCfg, nil
+}
+
+func SaveConfig(cfg *TuiConfig) error {
+	cfgFile, err := getConfigFile()
+	if err != nil {
+		return fmt.Errorf("could not locate users config: %w\n", err)
+	}
+
+	jsonBytes, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to encode json: %w\n", err)
+	}
+
+	if err := os.WriteFile(cfgFile, jsonBytes, 0o644); err != nil {
+		return fmt.Errorf("failed to write to json config file: %w\n", err)
 	}
 
 	return nil
-}
-
-func GetConfigPath() (string, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("error %v: ", err)
-	}
-
-	configDir := filepath.Join(homeDir, tuiConfigPath)
-	configFilePath := filepath.Join(configDir, configFile)
-
-	exist, err := isConfigExist()
-	if err != nil {
-		return "", err
-	}
-
-	if !exist {
-		// make the directory and config file
-		createConfigFile(configDir)
-		return configFilePath, nil
-	}
-	return configFilePath, nil
 }
