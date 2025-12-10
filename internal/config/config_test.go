@@ -38,11 +38,12 @@ func TestSaveConfigAndReload(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	original := &TuiConfig{
-		CollectionPath: []string{"~/manga/berserk", "~/anime/eva"},
+		CollectionPath: []string{"~/manga/berserk", "~/manga/Frieren: Beyond Journey's End"},
 	}
 	require.NoError(t, SaveConfig(original))
 
 	loaded, err := LoadConfig()
+	require.NotNil(t, loaded)
 	require.NoError(t, err)
 
 	assert.Equal(t, original.CollectionPath, loaded.CollectionPath)

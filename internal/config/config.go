@@ -9,7 +9,6 @@ import (
 
 // this will be the configuration for the tui program
 // TODO: set the configuration for the filetree component to store the users selected paths
-
 const (
 	tuiConfigPath = "/.config/mangareadertui"
 	configFile    = "config.json"
