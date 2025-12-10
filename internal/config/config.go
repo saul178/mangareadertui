@@ -15,7 +15,8 @@ const (
 )
 
 type TuiConfig struct {
-	CollectionPath []string `json:"collection_path"`
+	CollectionPath []string            `json:"collection_path"`
+	MangaSeries    map[string][]string `json:"manga_series"`
 }
 
 func DefaultConfig() *TuiConfig {

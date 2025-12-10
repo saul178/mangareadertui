@@ -38,7 +38,12 @@ func TestSaveConfigAndReload(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	original := &TuiConfig{
-		CollectionPath: []string{"~/manga/berserk", "~/manga/Frieren: Beyond Journey's End"},
+		CollectionPath: []string{"~/manga/blue archive", "~/manga/naruto", "soul eater"},
+		MangaSeries: map[string][]string{
+			"blue archive": {"ch1", "ch2", "ch3"},
+			"naruto":       {"ch1", "ch2 stuff here"},
+			"soul eater":   {"ch0", "very long chapter name"},
+		},
 	}
 	require.NoError(t, SaveConfig(original))
 
@@ -47,6 +52,7 @@ func TestSaveConfigAndReload(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, original.CollectionPath, loaded.CollectionPath)
+	assert.Equal(t, original.MangaSeries, loaded.MangaSeries)
 }
 
 func TestCorruptedConf(t *testing.T) {
