@@ -19,16 +19,14 @@ type TuiConfig struct {
 	CollectionPath []string `json:"collection_path"`
 }
 
-// might not need this not sure?
 func DefaultConfig() *TuiConfig {
 	return &TuiConfig{CollectionPath: make([]string, 0)}
 }
 
-// TODO: this is bugged and exits out early before even creating a directory, causing it to fail
 func getConfigFile() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return "", fmt.Errorf("couldn't find users home directory: %w:\n", err)
+		return "", fmt.Errorf("couldn't find users home directory:\n%w", err)
 	}
 
 	configFilePath := filepath.Join(homeDir, tuiConfigPath, configFile)
@@ -38,29 +36,26 @@ func getConfigFile() (string, error) {
 func LoadConfig() (*TuiConfig, error) {
 	cfgFile, err := getConfigFile()
 	if err != nil {
-		return nil, fmt.Errorf("could not locate users config: %w\n", err)
+		return nil, fmt.Errorf("could not locate users config:\n%w", err)
 	}
 	configDir := filepath.Dir(cfgFile)
 
-	// 1 make sure config dir exists
 	if err := os.MkdirAll(configDir, 0o755); err != nil {
-		return nil, fmt.Errorf("failed to create mangareadertui config directory: %w\n", err)
+		return nil, fmt.Errorf("failed to create mangareadertui config directory:\n%w", err)
 	}
 
-	// 2 try to read the config.json
 	data, err := os.ReadFile(cfgFile)
 	if os.IsNotExist(err) {
 		cfg := DefaultConfig()
 		if saveErr := SaveConfig(cfg); saveErr != nil {
-			return nil, fmt.Errorf("failed to save default config: %w\n", saveErr)
+			return nil, fmt.Errorf("failed to save default config:\n%w", saveErr)
 		}
 		return cfg, nil
 	}
 
-	// 3 unmarshall the data
 	var tuiCfg TuiConfig
 	if err := json.Unmarshal(data, &tuiCfg); err != nil {
-		return nil, fmt.Errorf("failed to parse json config file %w:\n", err)
+		return nil, fmt.Errorf("failed to parse json config file:\n%w", err)
 	}
 	return &tuiCfg, nil
 }
@@ -68,16 +63,16 @@ func LoadConfig() (*TuiConfig, error) {
 func SaveConfig(cfg *TuiConfig) error {
 	cfgFile, err := getConfigFile()
 	if err != nil {
-		return fmt.Errorf("could not locate users config: %w\n", err)
+		return fmt.Errorf("could not locate users config:\n%w", err)
 	}
 
 	jsonBytes, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to encode json: %w\n", err)
+		return fmt.Errorf("failed to encode json:\n%w", err)
 	}
 
 	if err := os.WriteFile(cfgFile, jsonBytes, 0o644); err != nil {
-		return fmt.Errorf("failed to write to json config file: %w\n", err)
+		return fmt.Errorf("failed to write to json config file:\n%w", err)
 	}
 
 	return nil

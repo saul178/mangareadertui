@@ -1,17 +1,69 @@
 package config
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetConfigPath(t *testing.T) {
-	// TODO: create a temp dir to mock the user's home directory.
-	tests := []struct {
-		name          string
-		wantErr       bool
-		wantFileExist bool
-	}{}
+// NOTE: the primeagen rights tests like these
+func TestLoadConfigCreatesDefault(t *testing.T) {
+	// Fake HOME so we don’t use the real system directory
+	tmpHome := t.TempDir()
+	t.Setenv("HOME", tmpHome)
+
+	cfg, err := LoadConfig()
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	// Expect empty default config
+	assert.Equal(t, []string{}, cfg.CollectionPath)
+
+	// Ensure file was actually created
+	cfgFile, err := getConfigFile()
+	require.NoError(t, err)
+	_, err = os.Stat(cfgFile)
+	require.NoError(t, err)
+}
+
+func TestSaveConfigAndReload(t *testing.T) {
+	tmpHome := t.TempDir()
+	t.Setenv("HOME", tmpHome)
+
+	// Load once to create directory
+	cfg, err := LoadConfig()
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	original := &TuiConfig{
+		CollectionPath: []string{"~/manga/berserk", "~/anime/eva"},
+	}
+	require.NoError(t, SaveConfig(original))
+
+	loaded, err := LoadConfig()
+	require.NoError(t, err)
+
+	assert.Equal(t, original.CollectionPath, loaded.CollectionPath)
+}
+
+func TestCorruptedConf(t *testing.T) {
+	tmpHome := t.TempDir()
+	t.Setenv("HOME", tmpHome)
+
+	// this should create a directory w/ a default config.json
+	cfg, err := LoadConfig()
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	// write the corrupted data to the config.json
+	corruptData := []byte("{corrupted: json}")
+	testPath, err := getConfigFile()
+	require.NoError(t, err)
+	err = os.WriteFile(testPath, corruptData, 0o644)
+
+	corruptCfg, loadErr := LoadConfig()
+	assert.Error(t, loadErr)
+	assert.Nil(t, corruptCfg)
 }
