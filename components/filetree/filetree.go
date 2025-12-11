@@ -71,7 +71,7 @@ func NewFilePickerModel(cfg *config.TuiConfig) (FileTreeModel, error) {
 	}
 	fp.CurrentDirectory = defaultDir
 
-	return FileTreeModel{filePickerModel: fp, config: cfg}, nil
+	return FileTreeModel{filePickerModel: fp, config: cfg, compState: stateSelectPathView}, nil
 }
 
 func (ftm FileTreeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
