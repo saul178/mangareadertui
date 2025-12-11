@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/saul178/mangareadertui/components/filetree"
+	"github.com/saul178/mangareadertui/internal/config"
 )
 
 // TODO: eventually main will stitch everything together here
@@ -26,6 +27,7 @@ const (
 type mainAppModel struct {
 	// NOTE: subcomponents
 	filetree filetree.FileTreeModel
+	conf     *config.TuiConfig
 	// imageViewer imageView.Model
 	// search search.Model
 	// statusBar statusBar.Model
@@ -119,14 +121,20 @@ func (mam mainAppModel) View() string {
 func main() {
 	ft, err := filetree.NewFileTreeModel()
 	if err != nil {
-		fmt.Printf("failed to initialize file tree component: %v\n", err)
+		fmt.Printf("failed to initialize file tree component: %w\n", err)
 	}
 
-	// NOTE: not too sure about this
+	// init conf on app start up
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		fmt.Printf("failed to load conf: %w\n", err)
+	}
 	mangareadertui := mainAppModel{
 		activeComp: filetreeComp, // set default active comp
 		filetree:   ft,
+		conf:       cfg,
 	}
+
 	p := tea.NewProgram(&mangareadertui) // TODO: look into other rendering options
 	if _, err := p.Run(); err != nil {
 		fmt.Printf(failedToStartTui, err)

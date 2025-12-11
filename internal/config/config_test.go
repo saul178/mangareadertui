@@ -19,7 +19,7 @@ func TestLoadConfigCreatesDefault(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	// Expect empty default config
-	assert.Equal(t, []string{}, cfg.CollectionPath)
+	assert.Equal(t, []string{}, cfg.CollectionPaths)
 
 	// Ensure file was actually created
 	cfgFile, err := getConfigFile()
@@ -38,7 +38,7 @@ func TestSaveConfigAndReload(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	original := &TuiConfig{
-		CollectionPath: []string{"~/manga/blue archive", "~/manga/naruto", "soul eater"},
+		CollectionPaths: []string{"~/manga/blue archive", "~/manga/naruto", "soul eater"},
 		MangaSeries: map[string][]string{
 			"blue archive": {"ch1", "ch2", "ch3"},
 			"naruto":       {"ch1", "ch2 stuff here"},
@@ -51,7 +51,7 @@ func TestSaveConfigAndReload(t *testing.T) {
 	require.NotNil(t, loaded)
 	require.NoError(t, err)
 
-	assert.Equal(t, original.CollectionPath, loaded.CollectionPath)
+	assert.Equal(t, original.CollectionPaths, loaded.CollectionPaths)
 	assert.Equal(t, original.MangaSeries, loaded.MangaSeries)
 }
 

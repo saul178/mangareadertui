@@ -15,12 +15,15 @@ const (
 )
 
 type TuiConfig struct {
-	CollectionPath []string            `json:"collection_path"`
-	MangaSeries    map[string][]string `json:"manga_series"`
+	CollectionPaths []string            `json:"collection_paths"`
+	MangaSeries     map[string][]string `json:"manga_series"`
 }
 
-func DefaultConfig() *TuiConfig {
-	return &TuiConfig{CollectionPath: make([]string, 0)}
+func defaultConfig() *TuiConfig {
+	return &TuiConfig{
+		CollectionPaths: make([]string, 0),
+		MangaSeries:     make(map[string][]string),
+	}
 }
 
 func getConfigFile() (string, error) {
@@ -46,7 +49,7 @@ func LoadConfig() (*TuiConfig, error) {
 
 	data, err := os.ReadFile(cfgFile)
 	if os.IsNotExist(err) {
-		cfg := DefaultConfig()
+		cfg := defaultConfig()
 		if saveErr := SaveConfig(cfg); saveErr != nil {
 			return nil, fmt.Errorf("failed to save default config:\n%w", saveErr)
 		}

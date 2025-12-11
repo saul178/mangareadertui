@@ -20,8 +20,8 @@ import (
 type fileTreeState int
 
 const (
-	stateLibraryView    fileTreeState = iota // main component that will render along side the rest of the tui
-	stateSelectPathView                      // alt window that will pop up for them to select their collection path
+	stateLibraryView    fileTreeState = iota // standard mode that will render along side the rest of the tui
+	stateSelectPathView                      // add mode alt window that will pop up for them to select their collection path
 )
 
 const cbzExt = ".cbz"
@@ -29,12 +29,12 @@ const cbzExt = ".cbz"
 type FileTreeModel struct {
 	// data model list of paths that the user selects for their manga library, and stores in a conf.json
 	compState         fileTreeState
-	config            config.TuiConfig
+	config            *config.TuiConfig
 	mangaLibraryRoots []string // maybe it should be a map?
 	cursor            int
 	offset            int
-	selectedSeries    string
-	selectedManga     string // might not need this value since the series is being stored in a map[str][]str
+	selectedSeries    string // keep track of what is selected
+	selectedManga     string
 	expandedPaths     map[string]bool
 
 	// --- Component: Path Picker ---
@@ -55,24 +55,39 @@ func clearErrorAfter(t time.Duration) tea.Cmd {
 	})
 }
 
-func (ftm FileTreeModel) Init() tea.Cmd {
-	return ftm.filePickerModel.Init()
+// -- file picker state  --
+func NewFilePickerModel(cfg *config.TuiConfig) (FileTreeModel, error) {
+	fp := filepicker.New()
+	fp.AllowedTypes = nil
+	fp.DirAllowed = true
+	fp.FileAllowed = false
+	fp.ShowHidden = true
+
+	// NOTE: for now this will just be set to the home dir until i get the config side going
+	// TODO: handle the error better by defaulting to their home path if the config isn't set
+	defaultDir, err := os.UserHomeDir()
+	if err != nil {
+		return FileTreeModel{}, errors.Join(ErrGettingHomeDir, err)
+	}
+	fp.CurrentDirectory = defaultDir
+
+	return FileTreeModel{filePickerModel: fp, config: cfg}, nil
 }
 
 func (ftm FileTreeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// TODO: instead of quiting the app have it Toggle the component?
-	// switch msg := msg.(type) {
-	// case clearErrMsg:
-	// 	ftm.Err = nil
-	// }
+	switch msg := msg.(type) {
+	case clearErrMsg:
+		ftm.err = nil
+	}
 
 	var cmd tea.Cmd
 	ftm.filePickerModel, cmd = ftm.filePickerModel.Update(msg)
 
-	// Did the user select a file?
+	// Did the user select a path?
 	if didSelect, path := ftm.filePickerModel.DidSelectFile(msg); didSelect {
 		// Get the path of the selected file.
-		ftm.selectedFile = path
+		ftm.config.CollectionPath = path
 	}
 
 	// Did the user select a disabled file?
@@ -88,11 +103,6 @@ func (ftm FileTreeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (ftm FileTreeModel) View() string {
-	// if ftm.Toggle {
-	//
-	// 	return ""
-	// }
-
 	var s strings.Builder
 	s.WriteString("\n ")
 	if ftm.err != nil {
@@ -106,20 +116,6 @@ func (ftm FileTreeModel) View() string {
 	return s.String()
 }
 
-func NewFileTreeModel() (FileTreeModel, error) {
-	fp := filepicker.New()
-	fp.AllowedTypes = nil
-	fp.DirAllowed = true
-	fp.FileAllowed = false
-	fp.ShowHidden = true
-
-	// NOTE: for now this will just be set to the home dir until i get the config side going
-	// TODO: handle the error better by defaulting to their home path if the config isn't set
-	defaultDir, err := os.UserHomeDir()
-	if err != nil {
-		return FileTreeModel{}, errors.Join(ErrGettingHomeDir, err)
-	}
-
-	fp.CurrentDirectory = defaultDir
-	return FileTreeModel{filePickerModel: fp}, nil
+func (ftm FileTreeModel) Init() tea.Cmd {
+	return ftm.filePickerModel.Init()
 }
