@@ -17,6 +17,12 @@ import (
 	"github.com/saul178/mangareadertui/internal/config"
 )
 
+type (
+	pathSelectedMsg string
+	// cancelPathSelectedMsg struct{}
+	clearErrMsg struct{}
+)
+
 type fileTreeState int
 
 const (
@@ -24,18 +30,16 @@ const (
 	stateSelectPathView                      // add mode alt window that will pop up for them to select their collection path
 )
 
-const cbzExt = ".cbz"
-
 type FileTreeModel struct {
 	// data model list of paths that the user selects for their manga library, and stores in a conf.json
 	compState         fileTreeState
 	config            *config.TuiConfig
 	mangaLibraryRoots []string // maybe it should be a map?
+	expandedPaths     map[string]bool
 	cursor            int
-	offset            int
 	selectedSeries    string // keep track of what is selected
 	selectedManga     string
-	expandedPaths     map[string]bool
+	offset            int
 
 	// --- Component: Path Picker ---
 	// This is the bubble used ONLY when state == stateSelectPathView.
@@ -47,8 +51,6 @@ type FileTreeModel struct {
 
 var ErrGettingHomeDir error = errors.New("Error getting home directory")
 
-type clearErrMsg struct{}
-
 func clearErrorAfter(t time.Duration) tea.Cmd {
 	return tea.Tick(t, func(_ time.Time) tea.Msg {
 		return clearErrMsg{}
@@ -56,63 +58,65 @@ func clearErrorAfter(t time.Duration) tea.Cmd {
 }
 
 // -- file picker state  --
-func NewFilePickerModel(cfg *config.TuiConfig) (FileTreeModel, error) {
+func NewFilePickerModel(cfg *config.TuiConfig) FileTreeModel {
 	fp := filepicker.New()
 	fp.AllowedTypes = nil
 	fp.DirAllowed = true
 	fp.FileAllowed = false
-	fp.ShowHidden = true
+	fp.ShowHidden = true // TODO: have this be toggled by user
 
-	// NOTE: for now this will just be set to the home dir until i get the config side going
-	// TODO: handle the error better by defaulting to their home path if the config isn't set
-	defaultDir, err := os.UserHomeDir()
-	if err != nil {
-		return FileTreeModel{}, errors.Join(ErrGettingHomeDir, err)
+	return FileTreeModel{
+		compState:         stateLibraryView,
+		config:            cfg,
+		mangaLibraryRoots: cfg.CollectionPaths,
+		expandedPaths:     make(map[string]bool),
+		filePickerModel:   fp,
 	}
-	fp.CurrentDirectory = defaultDir
-
-	return FileTreeModel{filePickerModel: fp, config: cfg, compState: stateSelectPathView}, nil
 }
 
 func (ftm FileTreeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// TODO: instead of quiting the app have it Toggle the component?
+	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case clearErrMsg:
 		ftm.err = nil
+
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "a":
+			ftm.compState = stateSelectPathView
+		case "enter":
+			ftm.mangaLibraryRoots = append(ftm.mangaLibraryRoots, ftm.filePickerModel.CurrentDirectory)
+			ftm.compState = stateLibraryView
+		}
+	case pathSelectedMsg:
+		path := string(msg)
+		ftm.config.CollectionPaths = append(ftm.config.CollectionPaths, path)
+		ftm.mangaLibraryRoots = ftm.config.CollectionPaths
+
+		if err := config.SaveConfig(ftm.config); err != nil {
+			ftm.err = errors.New(err.Error())
+			return ftm, clearErrorAfter(time.Second * 2)
+		}
+		ftm.compState = stateLibraryView
+		return ftm, cmd
+
 	}
-
-	var cmd tea.Cmd
-	ftm.filePickerModel, cmd = ftm.filePickerModel.Update(msg)
-
-	// Did the user select a path?
-	if didSelect, path := ftm.filePickerModel.DidSelectFile(msg); didSelect {
-		// Get the path of the selected file.
-		ftm.config.CollectionPath = path
-	}
-
-	// Did the user select a disabled file?
-	// This is only necessary to display an error to the user.
-	if didSelect, path := ftm.filePickerModel.DidSelectDisabledFile(msg); didSelect {
-		// Let's clear the selectedFile and display an error.
-		ftm.err = errors.New(path + " is not valid.")
-		ftm.selectedFile = ""
-		return ftm, tea.Batch(cmd, clearErrorAfter(2*time.Second))
-	}
-
 	return ftm, cmd
 }
 
 func (ftm FileTreeModel) View() string {
 	var s strings.Builder
 	s.WriteString("\n ")
-	if ftm.err != nil {
-		s.WriteString(ftm.filePickerModel.Styles.DisabledFile.Render(ftm.err.Error()))
-	} else if ftm.selectedFile == "" {
-		s.WriteString("pick a file: ")
-	} else {
-		s.WriteString("Manga selected, starting Viewer... " + ftm.filePickerModel.Styles.Selected.Render(ftm.selectedFile))
+	if ftm.compState == stateSelectPathView {
+		return ftm.filePickerModel.View()
 	}
-	s.WriteString("\n\n" + ftm.filePickerModel.View() + "\n")
+
+	if len(ftm.mangaLibraryRoots) == 0 {
+		s.WriteString("No collection paths added yet, push some button to add")
+		return s.String()
+	}
+	s.WriteString("testing initial view")
 	return s.String()
 }
 

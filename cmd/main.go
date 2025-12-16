@@ -119,16 +119,14 @@ func (mam mainAppModel) View() string {
 }
 
 func main() {
-	ft, err := filetree.NewFileTreeModel()
-	if err != nil {
-		fmt.Printf("failed to initialize file tree component: %w\n", err)
-	}
-
 	// init conf on app start up
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		fmt.Printf("failed to load conf: %w\n", err)
+		fmt.Printf("failed to load conf: %v\n", err)
 	}
+
+	ft := filetree.NewFilePickerModel(cfg)
+
 	mangareadertui := mainAppModel{
 		activeComp: filetreeComp, // set default active comp
 		filetree:   ft,

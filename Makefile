@@ -1,3 +1,5 @@
+all:
+	make build && make run
 build:
 	go build -o bin/tuiapp ./cmd/main.go
 run:
