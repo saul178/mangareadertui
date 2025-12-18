@@ -7,9 +7,6 @@
 package filetree
 
 import (
-	"errors"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/filepicker"
@@ -22,6 +19,12 @@ type (
 	// cancelPathSelectedMsg struct{}
 	clearErrMsg struct{}
 )
+
+func clearErrorAfter(t time.Duration) tea.Cmd {
+	return tea.Tick(t, func(_ time.Time) tea.Msg {
+		return clearErrMsg{}
+	})
+}
 
 type fileTreeState int
 
@@ -46,19 +49,13 @@ type FileTreeModel struct {
 	// You allow the user to navigate the OS here.
 	// When they press "Select", you append the path to LibraryRoots and switch state back.
 	filePickerModel filepicker.Model
+	height          int
+	width           int
 	err             error
 }
 
-var ErrGettingHomeDir error = errors.New("Error getting home directory")
-
-func clearErrorAfter(t time.Duration) tea.Cmd {
-	return tea.Tick(t, func(_ time.Time) tea.Msg {
-		return clearErrMsg{}
-	})
-}
-
-// -- file picker state  --
-func NewFilePickerModel(cfg *config.TuiConfig) FileTreeModel {
+// init initial model
+func NewFileTreeModel(cfg *config.TuiConfig) FileTreeModel {
 	fp := filepicker.New()
 	fp.AllowedTypes = nil
 	fp.DirAllowed = true
@@ -76,48 +73,11 @@ func NewFilePickerModel(cfg *config.TuiConfig) FileTreeModel {
 
 func (ftm FileTreeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// TODO: instead of quiting the app have it Toggle the component?
-	var cmd tea.Cmd
-	switch msg := msg.(type) {
-	case clearErrMsg:
-		ftm.err = nil
-
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "a":
-			ftm.compState = stateSelectPathView
-		case "enter":
-			ftm.mangaLibraryRoots = append(ftm.mangaLibraryRoots, ftm.filePickerModel.CurrentDirectory)
-			ftm.compState = stateLibraryView
-		}
-	case pathSelectedMsg:
-		path := string(msg)
-		ftm.config.CollectionPaths = append(ftm.config.CollectionPaths, path)
-		ftm.mangaLibraryRoots = ftm.config.CollectionPaths
-
-		if err := config.SaveConfig(ftm.config); err != nil {
-			ftm.err = errors.New(err.Error())
-			return ftm, clearErrorAfter(time.Second * 2)
-		}
-		ftm.compState = stateLibraryView
-		return ftm, cmd
-
-	}
-	return ftm, cmd
+	return ftm, nil
 }
 
-func (ftm FileTreeModel) View() string {
-	var s strings.Builder
-	s.WriteString("\n ")
-	if ftm.compState == stateSelectPathView {
-		return ftm.filePickerModel.View()
-	}
-
-	if len(ftm.mangaLibraryRoots) == 0 {
-		s.WriteString("No collection paths added yet, push some button to add")
-		return s.String()
-	}
-	s.WriteString("testing initial view")
-	return s.String()
+func (m FileTreeModel) View() string {
+	return ""
 }
 
 func (ftm FileTreeModel) Init() tea.Cmd {

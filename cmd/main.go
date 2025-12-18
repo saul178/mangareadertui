@@ -55,6 +55,13 @@ func (mam mainAppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		mam.width = msg.Width
+		mam.height = msg.Height
+
+		// Optionally forward to children if they need it
+		// For now, filetree doesn't need it, but image viewer will!
+		return mam, nil
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q", "esc":
@@ -101,16 +108,14 @@ func (mam mainAppModel) View() string {
 	// } else if mam.activeComp == searchComp {
 	// 	mainContentView = mam.search.View()
 	// } else {
-	mainContentView := "this is a tmp str"
+	mainContentView := "\t\t\t\tthis is a tmp str"
 	// }
 	//
 	// TODO: Combine them (using simple string concatenation for this example)
 	// In a real TUI, you would use lipgloss to tile or stack these views.
 	output := lipgloss.JoinHorizontal(
 		lipgloss.Top,
-		// File tree gets 30% width
 		lipgloss.PlaceVertical(mam.height, lipgloss.Top, fileTreeView),
-		// Main content gets the rest
 		lipgloss.PlaceVertical(mam.height, lipgloss.Top, mainContentView),
 	)
 	// add status bar at the bottom
@@ -125,7 +130,7 @@ func main() {
 		fmt.Printf("failed to load conf: %v\n", err)
 	}
 
-	ft := filetree.NewFilePickerModel(cfg)
+	ft := filetree.NewFileTreeModel(cfg)
 
 	mangareadertui := mainAppModel{
 		activeComp: filetreeComp, // set default active comp
@@ -133,7 +138,7 @@ func main() {
 		conf:       cfg,
 	}
 
-	p := tea.NewProgram(&mangareadertui) // TODO: look into other rendering options
+	p := tea.NewProgram(&mangareadertui, tea.WithAltScreen()) // TODO: look into other rendering options
 	if _, err := p.Run(); err != nil {
 		fmt.Printf(failedToStartTui, err)
 		os.Exit(1)
