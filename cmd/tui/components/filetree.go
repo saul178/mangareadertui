@@ -92,8 +92,15 @@ func (ftm FileTreeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// it should open up a separate window where the user can navigate and select their path
 			// the path selected should then be saved in the conf.json and recursively insert any sub dir
 			// and valid cbz files
+			ftm.compState = stateSelectPathView
 		case "backspace": //, "h", "left"
 			// TODO: allow to navigate back up one dir up to the root of the manga library only
+		}
+		// update which model to be used depending on state
+		switch ftm.compState {
+		case stateLibraryView:
+		case stateSelectPathView:
+			ftm.filePickerModel, cmd = ftm.filePickerModel.Update(msg)
 		}
 	}
 
