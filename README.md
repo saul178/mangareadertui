@@ -7,7 +7,7 @@ This tui application main focus will be to just be used only for local collectio
 # TODO:
 - [ ] implement search/filter component
 - [ ] implement file tree/picker component
-- [ ] get familiar with the bubble tea framework or look into tview
+- [ ] get familiar with the bubble tea framework: understand how to handle state, and also render app dimensions
 - [ ] understand how we can render images on the terminal
 - [ ] research alternative paths just incase tui idea is not possible with golang
 
