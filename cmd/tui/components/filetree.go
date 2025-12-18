@@ -55,14 +55,14 @@ type FileTreeModel struct {
 }
 
 // init initial model
-func NewFileTreeModel(cfg *config.TuiConfig) FileTreeModel {
+func NewFileTreeModel(cfg *config.TuiConfig) *FileTreeModel {
 	fp := filepicker.New()
 	fp.AllowedTypes = nil
 	fp.DirAllowed = true
 	fp.FileAllowed = false
 	fp.ShowHidden = true // TODO: have this be toggled by user
 
-	return FileTreeModel{
+	return &FileTreeModel{
 		compState:         stateLibraryView,
 		config:            cfg,
 		mangaLibraryRoots: cfg.CollectionPaths,
@@ -72,7 +72,31 @@ func NewFileTreeModel(cfg *config.TuiConfig) FileTreeModel {
 }
 
 func (ftm FileTreeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// TODO: instead of quiting the app have it Toggle the component?
+	var cmd tea.Cmd
+	var cmds []tea.Cmd
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "q", "esc", "ctrl+c":
+			return ftm, tea.Quit
+		case "j", "down":
+			// TODO: cursor logic: navigation is dependent if paths are expanded or not
+		case "k", "up":
+			// TODO: cursor logic: navigation is dependent if paths are expanded or not
+		case "enter": //, "l", "right"
+			// TODO: if its a directory then it should expand revealing the children dirs
+			// if its a valid comic form file the we can do operations to extract the cbz to be viewed
+		case "a":
+			// TODO: here we change the state of the filetree component to filepicker component
+			// it should open up a separate window where the user can navigate and select their path
+			// the path selected should then be saved in the conf.json and recursively insert any sub dir
+			// and valid cbz files
+		case "backspace": //, "h", "left"
+			// TODO: allow to navigate back up one dir up to the root of the manga library only
+		}
+	}
+
 	return ftm, nil
 }
 

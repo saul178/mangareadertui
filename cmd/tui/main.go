@@ -6,7 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/saul178/mangareadertui/components/filetree"
+	filetree "github.com/saul178/mangareadertui/cmd/tui/components"
 	"github.com/saul178/mangareadertui/internal/config"
 )
 
@@ -26,7 +26,7 @@ const (
 
 type mainAppModel struct {
 	// NOTE: subcomponents
-	filetree filetree.FileTreeModel
+	filetree *filetree.FileTreeModel
 	conf     *config.TuiConfig
 	// imageViewer imageView.Model
 	// search search.Model
@@ -82,7 +82,7 @@ func (mam mainAppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch mam.activeComp {
 	case filetreeComp:
 		newModel, newCmd := mam.filetree.Update(msg)
-		mam.filetree = newModel.(filetree.FileTreeModel) // need to type assert here
+		mam.filetree = newModel.(*filetree.FileTreeModel) // need to type assert here
 		cmds = append(cmds, newCmd)
 		// case imageViewerComp:
 		// case searchComp:
