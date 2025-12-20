@@ -38,11 +38,32 @@ func TestSaveConfigAndReload(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	original := &TuiConfig{
-		CollectionPaths: []string{"~/manga/blue archive", "~/manga/naruto", "soul eater"},
-		MangaSeries: map[string][]string{
-			"blue archive": {"ch1", "ch2", "ch3"},
-			"naruto":       {"ch1", "ch2 stuff here"},
-			"soul eater":   {"ch0", "very long chapter name"},
+		CollectionPaths: []string{"/home/manga", "/home/other-library"},
+		MangaSeries: rootDir{
+			"/home/manga": subDir{
+				"blue-archive/hina": []string{
+					"somefile.cbz",
+					"somefile2.cbz",
+					"somefile3.cbz",
+				},
+				"chainsaw-man": []string{
+					"file1.cbz",
+					"file2.cbz",
+					"file3.cbz",
+				},
+			},
+			"/home/other-library": subDir{
+				"frieren": []string{
+					"somefile.cbz",
+					"somefile2.cbz",
+					"somefile3.cbz",
+				},
+				"naruto": []string{
+					"file1.cbz",
+					"file2.cbz",
+					"file3.cbz",
+				},
+			},
 		},
 	}
 	require.NoError(t, SaveConfig(original))
@@ -53,6 +74,11 @@ func TestSaveConfigAndReload(t *testing.T) {
 
 	assert.Equal(t, original.CollectionPaths, loaded.CollectionPaths)
 	assert.Equal(t, original.MangaSeries, loaded.MangaSeries)
+
+	for _, p := range loaded.CollectionPaths {
+		_, exists := loaded.MangaSeries[p]
+		assert.True(t, exists)
+	}
 }
 
 func TestCorruptedConf(t *testing.T) {
