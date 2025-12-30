@@ -4,20 +4,23 @@
 // allow navigation to select series and manga
 // toggle and show expanded series files
 // allow an alt window to configure and set your library collection to be viewed in the main filetree comp
-package filetree
+package components
 
 import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/filepicker"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/saul178/mangareadertui/internal/config"
 )
 
 type (
-	pathSelectedMsg string
-	// cancelPathSelectedMsg struct{}
-	clearErrMsg struct{}
+	pathSelectedMsg  string
+	savedToConfigMsg string
+
+	cancelPathSelectedMsg struct{}
+	clearErrMsg           struct{}
 )
 
 func clearErrorAfter(t time.Duration) tea.Cmd {
@@ -33,24 +36,25 @@ const (
 	stateSelectPathView                      // add mode alt window that will pop up for them to select their collection path
 )
 
+// TODO: reorganize the struct
 type FileTreeModel struct {
 	// data model list of paths that the user selects for their manga library, and stores in a conf.json
 	compState         fileTreeState
 	config            *config.TuiConfig
-	mangaLibraryRoots []string // maybe it should be a map?
-	expandedPaths     map[string]bool
+	mangaLibraryRoots []string
+	expandedPaths     map[string]struct{}
 	cursor            int
 	selectedSeries    string // keep track of what is selected
 	selectedManga     string
 	offset            int
+	height            int
+	width             int
 
 	// --- Component: Path Picker ---
 	// This is the bubble used ONLY when state == stateSelectPathView.
 	// You allow the user to navigate the OS here.
 	// When they press "Select", you append the path to LibraryRoots and switch state back.
 	filePickerModel filepicker.Model
-	height          int
-	width           int
 	err             error
 }
 
@@ -60,13 +64,13 @@ func NewFileTreeModel(cfg *config.TuiConfig) *FileTreeModel {
 	fp.AllowedTypes = nil
 	fp.DirAllowed = true
 	fp.FileAllowed = false
-	fp.ShowHidden = true // TODO: have this be toggled by user
+	fp.ShowHidden = false // TODO: have this be toggled by user
 
 	return &FileTreeModel{
 		compState:         stateLibraryView,
 		config:            cfg,
 		mangaLibraryRoots: cfg.CollectionPaths,
-		expandedPaths:     make(map[string]bool),
+		expandedPaths:     make(map[string]struct{}),
 		filePickerModel:   fp,
 	}
 }
