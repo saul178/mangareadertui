@@ -9,13 +9,6 @@ import (
 
 // TODO: set the configuration for the filetree component to store the users selected paths
 
-type (
-	// NOTE: not sure if these fields should be public, can add helper receivers to them if needed
-	rootDir map[string]subDir
-	subDir  map[string]files
-	files   []string
-)
-
 const (
 	tuiConfigPath = "/.config/mangareadertui"
 	configFile    = "config.json"
@@ -24,14 +17,11 @@ const (
 type TuiConfig struct {
 	// full root directories provided
 	CollectionPaths []string `json:"collection_paths"`
-	// map: root path -> subDir paths -> files
-	MangaSeries rootDir `json:"manga_series"`
 }
 
 func defaultConfig() *TuiConfig {
 	return &TuiConfig{
 		CollectionPaths: make([]string, 0),
-		MangaSeries:     make(rootDir),
 	}
 }
 
