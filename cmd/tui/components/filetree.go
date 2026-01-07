@@ -11,7 +11,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/filepicker"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	// "github.com/charmbracelet/lipgloss"
 	"github.com/saul178/mangareadertui/internal/config"
 )
 
@@ -59,14 +59,14 @@ type FileTreeModel struct {
 }
 
 // init initial model
-func NewFileTreeModel(cfg *config.TuiConfig) *FileTreeModel {
+func NewFileTreeModel(cfg *config.TuiConfig) FileTreeModel {
 	fp := filepicker.New()
 	fp.AllowedTypes = nil
 	fp.DirAllowed = true
 	fp.FileAllowed = false
 	fp.ShowHidden = false // TODO: have this be toggled by user
 
-	return &FileTreeModel{
+	return FileTreeModel{
 		compState:         stateLibraryView,
 		config:            cfg,
 		mangaLibraryRoots: cfg.CollectionPaths,
@@ -75,14 +75,17 @@ func NewFileTreeModel(cfg *config.TuiConfig) *FileTreeModel {
 	}
 }
 
-func (ftm FileTreeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (ftm FileTreeModel) Update(msg tea.Msg) (FileTreeModel, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		ftm.width = msg.Width
+		ftm.height = msg.Height
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "q", "esc", "ctrl+c":
+		case "q", "ctrl+c":
 			return ftm, tea.Quit
 		case "j", "down":
 			// TODO: cursor logic: navigation is dependent if paths are expanded or not
@@ -99,20 +102,31 @@ func (ftm FileTreeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			ftm.compState = stateSelectPathView
 		case "backspace": //, "h", "left"
 			// TODO: allow to navigate back up one dir up to the root of the manga library only
+		case "shift+h":
+			// show hidden files in directory
+			if ftm.compState == stateSelectPathView {
+				ftm.filePickerModel.ShowHidden = !ftm.filePickerModel.ShowHidden
+				return ftm, ftm.filePickerModel.Init()
+			}
 		}
+
 		// update which model to be used depending on state
 		switch ftm.compState {
 		case stateLibraryView:
 		case stateSelectPathView:
 			ftm.filePickerModel, cmd = ftm.filePickerModel.Update(msg)
+			cmds = append(cmds, cmd)
 		}
 	}
-
-	return ftm, nil
+	return ftm, tea.Batch(cmds...)
 }
 
-func (m FileTreeModel) View() string {
-	return ""
+func (ftm FileTreeModel) View() string {
+	if ftm.compState == stateSelectPathView {
+		return ftm.filePickerModel.View()
+	} else {
+		return "this will be a filetree structure soon"
+	}
 }
 
 func (ftm FileTreeModel) Init() tea.Cmd {

@@ -1,8 +1,8 @@
 all:
 	make build && make run
 build:
-	go build -o bin/tuiapp ./cmd/main.go
+	go build -o bin/mangareadertui ./cmd/tui/main.go
 run:
-	./bin/tuiapp
+	./bin/mangareadertui
 delete:
-	rm ./bin/tuiapp
+	rm ./bin/mangareadertui

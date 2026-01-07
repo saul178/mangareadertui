@@ -26,7 +26,7 @@ const (
 
 type mainAppModel struct {
 	// NOTE: subcomponents
-	filetree *filetree.FileTreeModel
+	filetree filetree.FileTreeModel
 	conf     *config.TuiConfig
 	// imageViewer imageView.Model
 	// search search.Model
@@ -43,6 +43,7 @@ type mainAppModel struct {
 // TODO: this will initialize all subcomponents
 func (mam mainAppModel) Init() tea.Cmd {
 	// batch up all the subcomp inits for the app
+	// TODO: maybe this should be done sequentially?
 	return tea.Batch(
 		mam.filetree.Init(),
 		// am.ImageViewer etc
@@ -52,6 +53,7 @@ func (mam mainAppModel) Init() tea.Cmd {
 // TODO: Main application Update: Delegates messages and handles custom messages.
 // depending on which component is selected
 func (mam mainAppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
@@ -81,9 +83,8 @@ func (mam mainAppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// TODO: delegate the msgs to the current active component
 	switch mam.activeComp {
 	case filetreeComp:
-		newModel, newCmd := mam.filetree.Update(msg)
-		mam.filetree = newModel.(*filetree.FileTreeModel) // need to type assert here
-		cmds = append(cmds, newCmd)
+		mam.filetree, cmd = mam.filetree.Update(msg)
+		cmds = append(cmds, cmd)
 		// case imageViewerComp:
 		// case searchComp:
 		// case statusBarComp:
