@@ -13,21 +13,28 @@ import (
 // TODO: eventually main will stitch everything together here
 // this will hold all the components child models used for the main parent app to use
 // the appModel will choose which child component will be used
-type appComponents int
 
 var failedToStartTui string = "error starting mangareadertui: %v\n"
+
+const (
+	minWidth  = 50
+	minHeight = 100
+)
+
+type appComponents int
 
 const (
 	filetreeComp appComponents = iota
 	imageViewerComp
 	searchComp
-	statusBarComp
+	pageStatusBarComp
+	helpComp
 )
 
 type mainAppModel struct {
 	// NOTE: subcomponents
-	filetree filetree.FileTreeModel
 	conf     *config.TuiConfig
+	filetree filetree.FileTreeModel
 	// imageViewer imageView.Model
 	// search search.Model
 	// statusBar statusBar.Model
@@ -35,6 +42,7 @@ type mainAppModel struct {
 	// NOTE: Main application state
 	activeComp         appComponents // tracks which component is focused on
 	toggleFileTreeComp bool
+	toggleHelpComp     bool
 	width              int
 	height             int
 	err                error // report any errors encountered
@@ -44,10 +52,11 @@ type mainAppModel struct {
 func (mam mainAppModel) Init() tea.Cmd {
 	// batch up all the subcomp inits for the app
 	// TODO: maybe this should be done sequentially?
-	return tea.Batch(
-		mam.filetree.Init(),
-		// am.ImageViewer etc
-	)
+	// return tea.Batch(
+	// 	mam.filetree.Init(),
+	// 	// am.ImageViewer etc
+	// )
+	return nil
 }
 
 // TODO: Main application Update: Delegates messages and handles custom messages.
@@ -55,32 +64,28 @@ func (mam mainAppModel) Init() tea.Cmd {
 func (mam mainAppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
-
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		mam.width = msg.Width
 		mam.height = msg.Height
+		if mam.width < minWidth || mam.height < minHeight {
+			// TODO: present an error screen that informs the user that the window size is too small
+			// for the app
+		}
 
 		// Optionally forward to children if they need it
 		// For now, filetree doesn't need it, but image viewer will!
-		return mam, nil
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c", "q", "esc":
+		case "ctrl+c", "q":
 			return mam, tea.Quit
-		// NOTE: idea to cycle through the components
-		case "tab":
-			mam.activeComp = (mam.activeComp + 1) % 4
-			return mam, nil
+			// NOTE: idea to cycle through the components
+			// case "tab":
+			// 	mam.activeComp = (mam.activeComp + 1) % 4
+			// 	return mam, nil
 		}
-		// NOTE:
-		// this is to resize the window of the main app but might need to send the msg down to the subcomponents too
-		// case tea.WindowSizeMsg:
-		// 	am.width = msg.Width
-		// 	am.height = msg.Height
 	}
 
-	// TODO: delegate the msgs to the current active component
 	switch mam.activeComp {
 	case filetreeComp:
 		mam.filetree, cmd = mam.filetree.Update(msg)
@@ -89,6 +94,8 @@ func (mam mainAppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// case searchComp:
 		// case statusBarComp:
 	}
+
+	// TODO: delegate the msgs to the current active component
 
 	return mam, tea.Batch(cmds...)
 }
@@ -128,6 +135,7 @@ func main() {
 	// init conf on app start up
 	cfg, err := config.LoadConfig()
 	if err != nil {
+		// TODO: log this error to some log file
 		fmt.Printf("failed to load conf: %v\n", err)
 	}
 

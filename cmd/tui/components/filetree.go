@@ -7,10 +7,13 @@
 package components
 
 import (
+	"os"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/filepicker"
 	tea "github.com/charmbracelet/bubbletea"
+
 	// "github.com/charmbracelet/lipgloss"
 	"github.com/saul178/mangareadertui/internal/config"
 )
@@ -32,8 +35,8 @@ func clearErrorAfter(t time.Duration) tea.Cmd {
 type fileTreeState int
 
 const (
-	stateLibraryView    fileTreeState = iota // standard mode that will render along side the rest of the tui
-	stateSelectPathView                      // add mode alt window that will pop up for them to select their collection path
+	stateFileTree   fileTreeState = iota // standard mode that will render along side the rest of the tui
+	stateFilePicker                      // add mode alt window that will pop up for them to select their collection path
 )
 
 // TODO: reorganize the struct
@@ -44,8 +47,7 @@ type FileTreeModel struct {
 	mangaLibraryRoots []string
 	expandedPaths     map[string]struct{}
 	cursor            int
-	selectedSeries    string // keep track of what is selected
-	selectedManga     string
+	selectedField     string // keep track of what is selected
 	offset            int
 	height            int
 	width             int
@@ -61,13 +63,14 @@ type FileTreeModel struct {
 // init initial model
 func NewFileTreeModel(cfg *config.TuiConfig) FileTreeModel {
 	fp := filepicker.New()
+	fp.CurrentDirectory, _ = os.UserHomeDir() // TODO: dont ignore the error on prod and think of a better way to do this
 	fp.AllowedTypes = nil
 	fp.DirAllowed = true
 	fp.FileAllowed = false
-	fp.ShowHidden = false // TODO: have this be toggled by user
+	fp.ShowHidden = false
 
 	return FileTreeModel{
-		compState:         stateLibraryView,
+		compState:         stateFileTree,
 		config:            cfg,
 		mangaLibraryRoots: cfg.CollectionPaths,
 		expandedPaths:     make(map[string]struct{}),
@@ -78,15 +81,21 @@ func NewFileTreeModel(cfg *config.TuiConfig) FileTreeModel {
 func (ftm FileTreeModel) Update(msg tea.Msg) (FileTreeModel, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
-
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		ftm.width = msg.Width
 		ftm.height = msg.Height
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return ftm, tea.Quit
+		case "esc":
+			if ftm.compState == stateFilePicker {
+				ftm.compState = stateFileTree
+			} else {
+				return ftm, nil
+			}
 		case "j", "down":
 			// TODO: cursor logic: navigation is dependent if paths are expanded or not
 		case "k", "up":
@@ -99,33 +108,48 @@ func (ftm FileTreeModel) Update(msg tea.Msg) (FileTreeModel, tea.Cmd) {
 			// it should open up a separate window where the user can navigate and select their path
 			// the path selected should then be saved in the conf.json and recursively insert any sub dir
 			// and valid cbz files
-			ftm.compState = stateSelectPathView
+			ftm.compState = stateFilePicker
+			ftm.filePickerModel.SetHeight(ftm.height - 10)
+			cmds = append(cmds, ftm.filePickerModel.Init())
+			return ftm, tea.Batch(cmds...)
 		case "backspace": //, "h", "left"
 			// TODO: allow to navigate back up one dir up to the root of the manga library only
-		case "shift+h":
-			// show hidden files in directory
-			if ftm.compState == stateSelectPathView {
+		case "ctrl+a":
+			// toggle hidden files when in filepicker mode
+			if ftm.compState == stateFilePicker {
 				ftm.filePickerModel.ShowHidden = !ftm.filePickerModel.ShowHidden
-				return ftm, ftm.filePickerModel.Init()
+				cmds = append(cmds, ftm.filePickerModel.Init())
+			} else {
+				return ftm, nil
 			}
 		}
 
-		// update which model to be used depending on state
-		switch ftm.compState {
-		case stateLibraryView:
-		case stateSelectPathView:
-			ftm.filePickerModel, cmd = ftm.filePickerModel.Update(msg)
-			cmds = append(cmds, cmd)
+	}
+
+	switch ftm.compState {
+	// update which model to be used depending on state
+	case stateFilePicker:
+		if didSelect, path := ftm.filePickerModel.DidSelectFile(msg); didSelect {
+			ftm.mangaLibraryRoots = append(ftm.mangaLibraryRoots, path)
+			ftm.compState = stateFileTree
+			return ftm, nil
 		}
+		ftm.filePickerModel, cmd = ftm.filePickerModel.Update(msg)
+		cmds = append(cmds, cmd)
+	case stateFileTree:
 	}
 	return ftm, tea.Batch(cmds...)
 }
 
 func (ftm FileTreeModel) View() string {
-	if ftm.compState == stateSelectPathView {
-		return ftm.filePickerModel.View()
-	} else {
-		return "this will be a filetree structure soon"
+	var s strings.Builder
+	switch ftm.compState {
+	case stateFilePicker:
+		// TODO: render this correctly with lipgloss and on it's own window
+		s.WriteString("\n\n" + ftm.filePickerModel.View() + "\n")
+		return s.String()
+	default:
+		return "this will soon be a filetree"
 	}
 }
 
