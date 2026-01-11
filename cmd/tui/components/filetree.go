@@ -82,7 +82,6 @@ func (ftm FileTreeModel) Update(msg tea.Msg) (FileTreeModel, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		ftm.width = msg.Width
 		ftm.height = msg.Height
-
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c":
@@ -106,7 +105,9 @@ func (ftm FileTreeModel) Update(msg tea.Msg) (FileTreeModel, tea.Cmd) {
 			// TODO: if its a valid comic file then we perform the operations for it to be read and load it
 			// to the imageviewer
 		case "d":
-			// TODO: this action should delete a path that was saved from the config file and save the changes
+			// TODO: this action should delete a path saved from the config file and save the changes
+			// it must be the root directory or else im pretty sure weird behavior will happen if children
+			// are deleted
 		case "a":
 			// TODO: here we change the state of the filetree component to filepicker component
 			// it should open up a separate window where the user can navigate and select their path
@@ -131,6 +132,9 @@ func (ftm FileTreeModel) Update(msg tea.Msg) (FileTreeModel, tea.Cmd) {
 	// update which model to be used depending on state
 	switch ftm.compState {
 	case stateFilePicker:
+		ftm.filePickerModel, cmd = ftm.filePickerModel.Update(msg)
+		cmds = append(cmds, cmd)
+
 		if didSelect, path := ftm.filePickerModel.DidSelectFile(msg); didSelect {
 			ftm.config.CollectionPaths = append(ftm.config.CollectionPaths, path)
 			err := config.SaveConfig(ftm.config)
@@ -145,8 +149,6 @@ func (ftm FileTreeModel) Update(msg tea.Msg) (FileTreeModel, tea.Cmd) {
 				}
 			}
 		}
-		ftm.filePickerModel, cmd = ftm.filePickerModel.Update(msg)
-		cmds = append(cmds, cmd)
 	case stateFileTree:
 	}
 	return ftm, tea.Batch(cmds...)
