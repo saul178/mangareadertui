@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	filetree "github.com/saul178/mangareadertui/cmd/tui/components"
 	"github.com/saul178/mangareadertui/internal/config"
+	"github.com/saul178/mangareadertui/internal/logger"
 )
 
 // TODO: eventually main will stitch everything together here
@@ -45,6 +46,7 @@ type mainAppModel struct {
 	toggleHelpComp     bool
 	width              int
 	height             int
+	debugger           logger.LoggerModel
 	err                error // report any errors encountered
 }
 
@@ -96,7 +98,7 @@ func (mam mainAppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// TODO: delegate the msgs to the current active component
-
+	mam.debugger, cmd = mam.debugger.Update(msg)
 	return mam, tea.Batch(cmds...)
 }
 
@@ -139,11 +141,13 @@ func main() {
 		fmt.Printf("failed to load conf: %v\n", err)
 	}
 
+	debugger := logger.InitializeLogger()
 	ft := filetree.NewFileTreeModel(cfg)
 
 	mangareadertui := mainAppModel{
 		activeComp: filetreeComp, // set default active comp
 		filetree:   ft,
+		debugger:   *debugger,
 		conf:       cfg,
 	}
 

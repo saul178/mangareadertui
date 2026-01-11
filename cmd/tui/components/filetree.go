@@ -43,21 +43,16 @@ const (
 type FileTreeModel struct {
 	// data model list of paths that the user selects for their manga library, and stores in a conf.json
 	compState         fileTreeState
+	filePickerModel   filepicker.Model
 	config            *config.TuiConfig
-	mangaLibraryRoots []string
+	selectedField     string   // keep track of what is selected
+	mangaLibraryRoots []string // i dont think i need this?
 	expandedPaths     map[string]struct{}
 	cursor            int
-	selectedField     string // keep track of what is selected
 	offset            int
 	height            int
 	width             int
-
-	// --- Component: Path Picker ---
-	// This is the bubble used ONLY when state == stateSelectPathView.
-	// You allow the user to navigate the OS here.
-	// When they press "Select", you append the path to LibraryRoots and switch state back.
-	filePickerModel filepicker.Model
-	err             error
+	err               error
 }
 
 // init initial model
@@ -126,11 +121,13 @@ func (ftm FileTreeModel) Update(msg tea.Msg) (FileTreeModel, tea.Cmd) {
 
 	}
 
-	switch ftm.compState {
 	// update which model to be used depending on state
+	switch ftm.compState {
 	case stateFilePicker:
 		if didSelect, path := ftm.filePickerModel.DidSelectFile(msg); didSelect {
-			ftm.mangaLibraryRoots = append(ftm.mangaLibraryRoots, path)
+			ftm.config.CollectionPaths = append(ftm.config.CollectionPaths, path)
+			config.SaveConfig(ftm.config)
+			// TODO: display a success msg or fail msg if saving succeeded
 			ftm.compState = stateFileTree
 			return ftm, nil
 		}
