@@ -4,6 +4,7 @@
 // allow navigation to select series and manga
 // toggle and show expanded series files
 // allow an alt window to configure and set your library collection to be viewed in the main filetree comp
+// create custom keymaps for filetree a = add d = delete etc
 package components
 
 import (
@@ -18,13 +19,7 @@ import (
 	"github.com/saul178/mangareadertui/internal/config"
 )
 
-type (
-	pathSelectedMsg  string
-	savedToConfigMsg string
-
-	cancelPathSelectedMsg struct{}
-	clearErrMsg           struct{}
-)
+type clearErrMsg struct{}
 
 func clearErrorAfter(t time.Duration) tea.Cmd {
 	return tea.Tick(t, func(_ time.Time) tea.Msg {
@@ -35,13 +30,20 @@ func clearErrorAfter(t time.Duration) tea.Cmd {
 type fileTreeState int
 
 const (
-	stateFileTree   fileTreeState = iota // standard mode that will render along side the rest of the tui
-	stateFilePicker                      // add mode alt window that will pop up for them to select their collection path
+	stateFileTree fileTreeState = iota
+	stateFilePicker
 )
+
+type ConfigUpdatedMsg struct {
+	PathSaved   bool
+	PathDeleted bool
+	Path        *string
+}
+
+type ErrMsg error
 
 // TODO: reorganize the struct
 type FileTreeModel struct {
-	// data model list of paths that the user selects for their manga library, and stores in a conf.json
 	compState         fileTreeState
 	filePickerModel   filepicker.Model
 	config            *config.TuiConfig
@@ -95,9 +97,16 @@ func (ftm FileTreeModel) Update(msg tea.Msg) (FileTreeModel, tea.Cmd) {
 			// TODO: cursor logic: navigation is dependent if paths are expanded or not
 		case "k", "up":
 			// TODO: cursor logic: navigation is dependent if paths are expanded or not
-		case "enter": //, "l", "right"
+		case "l", "left":
 			// TODO: if its a directory then it should expand revealing the children dirs
-			// if its a valid comic form file the we can do operations to extract the cbz to be viewed
+			// if it's a normal file do nothing
+		case "backspace": //, "h", "left"
+			// TODO: allow to navigate back up one dir up to the root of the manga library only
+		case "enter": //
+			// TODO: if its a valid comic file then we perform the operations for it to be read and load it
+			// to the imageviewer
+		case "d":
+			// TODO: this action should delete a path that was saved from the config file and save the changes
 		case "a":
 			// TODO: here we change the state of the filetree component to filepicker component
 			// it should open up a separate window where the user can navigate and select their path
@@ -107,8 +116,6 @@ func (ftm FileTreeModel) Update(msg tea.Msg) (FileTreeModel, tea.Cmd) {
 			ftm.filePickerModel.SetHeight(ftm.height - 10)
 			cmds = append(cmds, ftm.filePickerModel.Init())
 			return ftm, tea.Batch(cmds...)
-		case "backspace": //, "h", "left"
-			// TODO: allow to navigate back up one dir up to the root of the manga library only
 		case "ctrl+a":
 			// toggle hidden files when in filepicker mode
 			if ftm.compState == stateFilePicker {
@@ -126,10 +133,17 @@ func (ftm FileTreeModel) Update(msg tea.Msg) (FileTreeModel, tea.Cmd) {
 	case stateFilePicker:
 		if didSelect, path := ftm.filePickerModel.DidSelectFile(msg); didSelect {
 			ftm.config.CollectionPaths = append(ftm.config.CollectionPaths, path)
-			config.SaveConfig(ftm.config)
-			// TODO: display a success msg or fail msg if saving succeeded
+			err := config.SaveConfig(ftm.config)
 			ftm.compState = stateFileTree
-			return ftm, nil
+			return ftm, func() tea.Msg {
+				if err != nil {
+					return ErrMsg(err)
+				}
+				return &ConfigUpdatedMsg{
+					PathSaved: didSelect,
+					Path:      &path,
+				}
+			}
 		}
 		ftm.filePickerModel, cmd = ftm.filePickerModel.Update(msg)
 		cmds = append(cmds, cmd)
