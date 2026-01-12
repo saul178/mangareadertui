@@ -13,11 +13,15 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/filepicker"
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 
 	// "github.com/charmbracelet/lipgloss"
+	"github.com/saul178/mangareadertui/cmd/tui/keymaps"
 	"github.com/saul178/mangareadertui/internal/config"
 )
+
+var keys = keymaps.NewFileTreeKeyMap()
 
 type clearErrMsg struct{}
 
@@ -47,10 +51,10 @@ type FileTreeModel struct {
 	compState         fileTreeState
 	filePickerModel   filepicker.Model
 	config            *config.TuiConfig
-	selectedField     string   // keep track of what is selected
+	selectedField     string   // keep track of what is selected either current navigating directory or selected manga
 	mangaLibraryRoots []string // i dont think i need this?
 	expandedPaths     map[string]struct{}
-	cursor            int
+	cursor            int // keeps track of the users position
 	offset            int
 	height            int
 	width             int
@@ -83,32 +87,37 @@ func (ftm FileTreeModel) Update(msg tea.Msg) (FileTreeModel, tea.Cmd) {
 		ftm.width = msg.Width
 		ftm.height = msg.Height
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "q", "ctrl+c":
+		switch {
+		case key.Matches(msg, keys.Quit):
 			return ftm, tea.Quit
-		case "esc":
+		case key.Matches(msg, keys.Esc):
+			// TODO: depending on state this should just escape from the current active state up to the default
+			// state which will be the file tree state
 			if ftm.compState == stateFilePicker {
 				ftm.compState = stateFileTree
 			} else {
 				return ftm, nil
 			}
-		case "j", "down":
+		case key.Matches(msg, keys.Down):
 			// TODO: cursor logic: navigation is dependent if paths are expanded or not
-		case "k", "up":
+		case key.Matches(msg, keys.Up):
 			// TODO: cursor logic: navigation is dependent if paths are expanded or not
-		case "l", "left":
+		case key.Matches(msg, keys.Left):
+			// TODO: allow to navigate back up one dir up to the root of the manga library only
 			// TODO: if its a directory then it should expand revealing the children dirs
 			// if it's a normal file do nothing
-		case "backspace": //, "h", "left"
-			// TODO: allow to navigate back up one dir up to the root of the manga library only
-		case "enter": //
+		case key.Matches(msg, keys.Right):
+			// TODO: move down one directory up to the end of it
+			// if its a non empty directory then it should expand revealing the children dirs
+			// if it's a normal file do nothing until they press enter to read their selectedManga
+		case key.Matches(msg, keys.Enter): //
 			// TODO: if its a valid comic file then we perform the operations for it to be read and load it
 			// to the imageviewer
-		case "d":
+		case key.Matches(msg, keys.Delete):
 			// TODO: this action should delete a path saved from the config file and save the changes
 			// it must be the root directory or else im pretty sure weird behavior will happen if children
 			// are deleted
-		case "a":
+		case key.Matches(msg, keys.Add):
 			// TODO: here we change the state of the filetree component to filepicker component
 			// it should open up a separate window where the user can navigate and select their path
 			// the path selected should then be saved in the conf.json and recursively insert any sub dir
@@ -117,7 +126,7 @@ func (ftm FileTreeModel) Update(msg tea.Msg) (FileTreeModel, tea.Cmd) {
 			ftm.filePickerModel.SetHeight(ftm.height - 10)
 			cmds = append(cmds, ftm.filePickerModel.Init())
 			return ftm, tea.Batch(cmds...)
-		case "ctrl+a":
+		case key.Matches(msg, keys.Toggle):
 			// toggle hidden files when in filepicker mode
 			if ftm.compState == stateFilePicker {
 				ftm.filePickerModel.ShowHidden = !ftm.filePickerModel.ShowHidden
