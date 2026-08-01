@@ -2,7 +2,7 @@ package keymaps
 
 import "github.com/charmbracelet/bubbles/key"
 
-type fileTreeKeyMap struct {
+type GenericKeyMap struct {
 	Up     key.Binding
 	Down   key.Binding
 	Left   key.Binding
@@ -16,8 +16,8 @@ type fileTreeKeyMap struct {
 	Quit   key.Binding
 }
 
-func NewFileTreeKeyMap() fileTreeKeyMap {
-	return fileTreeKeyMap{
+func NewFileTreeKeyMap() GenericKeyMap {
+	return GenericKeyMap{
 		Up: key.NewBinding(
 			key.WithKeys("k", "up"),
 			key.WithHelp("k/↑", "move up"),
@@ -37,23 +37,6 @@ func NewFileTreeKeyMap() fileTreeKeyMap {
 		Esc: key.NewBinding(
 			key.WithKeys("esc"),
 			key.WithHelp("esc", "escape current active window"),
-		),
-		Enter: key.NewBinding(
-			key.WithKeys("enter"),
-			key.WithHelp("enter", "read selected manga"),
-		),
-		Add: key.NewBinding(
-			key.WithKeys("a"),
-			key.WithHelp("a", "add manga collection"),
-		),
-		Toggle: key.NewBinding(
-			key.WithKeys("ctrl+t"),
-			// TODO: change the help msg if theyre in the file picker state to toggle hidden files
-			key.WithHelp("ctrl+t", "show hidden directories/toggle file tree"),
-		),
-		Delete: key.NewBinding(
-			key.WithKeys("d"),
-			key.WithKeys("d", "delete manga collection"),
 		),
 		Help: key.NewBinding(
 			key.WithKeys("?"),
