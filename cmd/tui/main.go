@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"os"
+	"log"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -15,11 +15,10 @@ import (
 // this will hold all the components child models used for the main parent app to use
 // the appModel will choose which child component will be used
 
-var failedToStartTui string = "error starting mangareadertui: %v\n"
-
 const (
 	minWidth  = 50
 	minHeight = 100
+	// TODO: set a max width and height for the app
 )
 
 type appComponents int
@@ -134,16 +133,20 @@ func (mam mainAppModel) View() string {
 }
 
 func main() {
+	debugger, err := logger.InitializeLogger()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// init conf on app start up
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		// TODO: log this error to some log file
+		// also present the user with an error, no reason to crash the app
 		fmt.Printf("failed to load conf: %v\n", err)
 	}
 
-	debugger := logger.InitializeLogger()
 	ft := filetree.NewFileTreeModel(cfg)
-
 	mangareadertui := mainAppModel{
 		activeComp: filetreeComp, // set default active comp
 		filetree:   ft,
@@ -153,7 +156,6 @@ func main() {
 
 	p := tea.NewProgram(&mangareadertui, tea.WithAltScreen()) // TODO: look into other rendering options
 	if _, err := p.Run(); err != nil {
-		fmt.Printf(failedToStartTui, err)
-		os.Exit(1)
+		log.Fatalf("failed to start mangareadertui:%v", err)
 	}
 }

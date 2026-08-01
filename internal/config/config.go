@@ -59,6 +59,7 @@ func LoadConfig() (*TuiConfig, error) {
 	if err := json.Unmarshal(data, &tuiCfg); err != nil {
 		return nil, fmt.Errorf("failed to parse json config file:\n%w", err)
 	}
+
 	return &tuiCfg, nil
 }
 

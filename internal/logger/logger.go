@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"io"
 	"os"
 
@@ -40,16 +41,16 @@ func (lm LoggerModel) View() string {
 	return ""
 }
 
-func InitializeLogger() *LoggerModel {
+func InitializeLogger() (*LoggerModel, error) {
 	var dump *os.File
 	if _, ok := os.LookupEnv("DEBUG"); ok {
 		var err error
 		dump, err = os.OpenFile("messages.log", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
 		if err != nil {
-			os.Exit(1)
+			return nil, fmt.Errorf("logger error: %w", err)
 		}
 	}
 
 	m := newLogger(dump)
-	return m
+	return m, nil
 }
