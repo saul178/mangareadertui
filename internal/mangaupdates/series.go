@@ -1,4 +1,12 @@
-package api
+package mangaupdates
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+)
 
 /*
 TODO:
@@ -9,7 +17,7 @@ TODO:
 - at some point move the models and defined types to their own file as this file gets bigger
 */
 
-const apiURL string = "https://api.mangaupdates.com/v1"
+const BaseAPIURL string = "https://api.mangaupdates.com/v1"
 const searchSeries string = "/series/search"
 const getSeriesByID string = "/search/%v"
 
@@ -68,7 +76,7 @@ type SearchResults struct {
 type MangaSeriesSearchSummary struct {
 	ID             int           `json:"series_id"`
 	Title          string        `json:"title"`
-	Url            string        `json:"url"`
+	URL            string        `json:"url"`
 	Description    string        `json:"description"`
 	Image          MangaCover    `json:"image"`
 	Type           SeriesType    `json:"type"` // <- enumtype
@@ -262,6 +270,7 @@ const (
 	GenderBender  SeriesGenres = "Gender Bender"
 	Harem         SeriesGenres = "Harem"
 	Hentai        SeriesGenres = "Hentai"
+
 	Historical    SeriesGenres = "Historical"
 	Horror        SeriesGenres = "Horror"
 	MartialArts   SeriesGenres = "MartialArts"
@@ -310,3 +319,46 @@ const (
 	SeriesIsFullAnthology    SeriesRelationship = "Full Anthology"
 	SeriesIsOther            SeriesRelationship = "Other"
 )
+
+// TODO:figure out if authtoken is needed, if needed create a default client and an authclient
+type MangaUpdatesClient struct {
+	client    *http.Client
+	header    http.Header
+	baseURL   string
+	AuthToken string
+}
+
+func NewMangaUpdatesClient() *MangaUpdatesClient {
+	client := http.Client{}
+	header := http.Header{}
+	header.Set("Content-Type", "applicaton/json")
+
+	return &MangaUpdatesClient{
+		client: &client,
+		header: header,
+		baseURL: BaseAPIURL,
+	}
+}
+
+func (muc *MangaUpdatesClient) DoRequest(ctx context.Context, method string, url string, body io.Reader) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header = muc.header
+	resp, err := muc.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		var er Response
+		if err = json.NewDecoder(resp.Body).Decode(&er); err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+		return nil, fmt.Println("TODO: create a function to parse the errors populated from the struct and return that")
+	}
+	return resp, nil
+}
