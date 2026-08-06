@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 )
 
 /*
@@ -23,9 +24,10 @@ const getSeriesByID string = "/search/%v"
 
 // WARNING: might not be needed ///////////////////////////////
 type Response struct {
-	Status  string                     `json:"status"`
-	Reason  string                     `json:"reason"`
-	Context map[string][]ContextErrors `json:"context"`
+	StatusCode int                        `json:"-"`
+	Status     string                     `json:"status"`
+	Reason     string                     `json:"reason"`
+	Context    map[string][]ContextErrors `json:"context"`
 }
 
 type ContextErrors struct {
@@ -270,7 +272,6 @@ const (
 	GenderBender  SeriesGenres = "Gender Bender"
 	Harem         SeriesGenres = "Harem"
 	Hentai        SeriesGenres = "Hentai"
-
 	Historical    SeriesGenres = "Historical"
 	Horror        SeriesGenres = "Horror"
 	MartialArts   SeriesGenres = "MartialArts"
@@ -334,10 +335,34 @@ func NewMangaUpdatesClient() *MangaUpdatesClient {
 	header.Set("Content-Type", "applicaton/json")
 
 	return &MangaUpdatesClient{
-		client: &client,
-		header: header,
+		client:  &client,
+		header:  header,
 		baseURL: BaseAPIURL,
 	}
+}
+
+func (r *Response) GetResponsDetails() string {
+	var b strings.Builder
+	if r.Status != "" || r.Reason != "" {
+		fmt.Fprintf(&b, "[STATUS CODE]: (%d)\n[STATUS]: %s\n [REASON]: %s\n", r.StatusCode, r.Status, r.Reason)
+	}
+	if len(r.Context) == 0 {
+		return b.String()
+	}
+
+	fields := make([]string, 0, len(r.Context))
+	for c := range r.Context {
+		fields = append(fields, c)
+	}
+
+	for _, f := range fields {
+		for _, ce := range r.Context[f] {
+			fmt.Fprintf(&b, "%s: %s\n", f, strings.Join(ce.Errors, "; "))
+		}
+	}
+
+	return b.String()
+
 }
 
 func (muc *MangaUpdatesClient) DoRequest(ctx context.Context, method string, url string, body io.Reader) (*http.Response, error) {
@@ -353,12 +378,13 @@ func (muc *MangaUpdatesClient) DoRequest(ctx context.Context, method string, url
 	}
 
 	if resp.StatusCode != http.StatusOK {
+		defer resp.Body.Close()
+
 		var er Response
 		if err = json.NewDecoder(resp.Body).Decode(&er); err != nil {
 			return nil, err
 		}
-		defer resp.Body.Close()
-		return nil, fmt.Println("TODO: create a function to parse the errors populated from the struct and return that")
+		// return nil, fmt.Println("TODO: create a function to parse the errors populated from the struct and return that")
 	}
 	return resp, nil
 }
