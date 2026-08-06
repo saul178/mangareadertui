@@ -1,7 +1,8 @@
 package main
 
-import "fmt"
+// import "github.com/saul178/mangareadertui/internal/mangaupdates"
+
 
 func main() {
-	fmt.Println("hello world!")
+	// mangaupdatesClient := mangaupdates.NewMangaUpdatesClient()
 }
