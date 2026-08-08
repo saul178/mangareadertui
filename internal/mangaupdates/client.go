@@ -35,7 +35,7 @@ func (r *Response) GetResponsDetails() string {
 	if r.Status != "" || r.Reason != "" {
 		fmt.Fprintf(&b, "[STATUS CODE]: (%d)\n[STATUS]: %s\n[REASON]: %s\n", r.StatusCode, r.Status, r.Reason)
 	}
-	// if context is empty we can assume that we didnt encountered errors since the api only returns Contexts on errors
+	// if context is empty we can assume that we didnt encounter any errors since the api only returns Contexts on errors
 	if len(r.Context) == 0 {
 		return b.String()
 	}
