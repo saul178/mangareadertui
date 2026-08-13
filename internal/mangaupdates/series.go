@@ -13,20 +13,6 @@ const BaseAPIURL string = "https://api.mangaupdates.com/v1"
 const searchSeries string = "/series/search"
 const getSeriesByID string = "/search/%v"
 
-// WARNING: might not be needed ///////////////////////////////
-type Response struct {
-	StatusCode int                        `json:"-"`
-	Status     string                     `json:"status"`
-	Reason     string                     `json:"reason"`
-	Context    map[string][]ContextErrors `json:"context"`
-}
-
-type ContextErrors struct {
-	Index  int      `json:"index"`
-	Errors []string `json:"errors"`
-}
-
-////////////////////////////////////////////////////////////
 
 // NOTE: struct to send the payload to the search endpoint and get a list of mangas
 // TODO: all marked as enumtype create a type enum of the related fields to
