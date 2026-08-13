@@ -1,10 +1,13 @@
 package mangaupdates_test
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/saul178/mangareadertui/internal/mangaupdates"
-	// "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 /**
@@ -14,49 +17,92 @@ TODO: this is just to test that these functions return what i expect
 3.) mock test for a successful api response
 **/
 
-// test response struct  that api validation errors are reported,
+// TODO: implement test for search function on successful search, 400 bad request search, 200 ok but empty search
 func TestRequestAndDecode(t *testing.T) {
-	mockResp := []mangaupdates.Response{
+	t.Parallel()
+	testCases := []struct {
+		name          string
+		statusCode    int
+		responseBody  string
+		expected      mangaupdates.Response
+		expectedError bool
+	}{
 		{
-			StatusCode: 400,
-			Status: "exception",
-			Reason: "Field Validation Error",
-			Context: map[string][]mangaupdates.ContextErrors{
-				"search": {
-					{Index: 0, Errors: []string{"\"\" must have a length between 1 and 400"}},
-				},
-				"exclude": {
-					{Index: 0, Errors: []string{"\"\" must have a length between 1 and 100"}},
+			name:       "400 validation error",
+			statusCode: http.StatusBadRequest,
+			responseBody: `{
+				"status": "exception",
+				"reason": "Field Validation Error",
+				"context": {
+					"search": [
+						{
+							"index": 0,
+							"errors": ["\"\" must have a length between 1 and 400"]
+						}
+					],
+					"exclude": [
+						{
+							"index": 0,
+							"errors": ["\"\" must have a length between 1 and 100"]
+						}
+					]
+				}
+			}`,
+			expected: mangaupdates.Response{
+				Status: "exception",
+				Reason: "Field Validation Error",
+				Context: map[string][]mangaupdates.ContextErrors{
+					"search": {
+						{Index: 0, Errors: []string{"\"\" must have a length between 1 and 400"}},
+					},
+					"exclude": {
+						{Index: 0, Errors: []string{"\"\" must have a length between 1 and 100"}},
+					},
 				},
 			},
 		},
-		{
-			StatusCode: 404,
-		},
-		{
-			StatusCode: 200,
-			Status: "success",
-			Reason: "login successful",
-		},
+		// {
+		// 	name:         "404 response",
+		// 	statusCode:   http.StatusNotFound,
+		// 	responseBody: `{}`,
+		// 	expected:     mangaupdates.Response{},
+		// },
+		// {
+		// 	name:       "200 success",
+		// 	statusCode: http.StatusOK,
+		// 	responseBody: `{
+		// 		"status": "success",
+		// 		"reason": "login successful"
+		// 	}`,
+		// 	expected: mangaupdates.Response{
+		// 		Status: "success",
+		// 		Reason: "login Succesful",
+		// 	},
+		// },
 	}
 
-	mockCases := []struct {
-		name string
-		expected *mangaupdates.Response
-	}{
-		{
-			name: "400 status code validation or service error returns a response",
-			expected: &mockResp[0],
-		},
-		{
-			name: "404 status code returned only, no response body",
-			expected: &mockResp[1],
-		},
-		{
-			name: "200 status code returned with status and reason",
-			expected: &mockResp[2],
-		},
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(tc.statusCode)
+				_, err := w.Write([]byte(tc.responseBody))
+				require.NoError(t, err)
+			}))
+			defer testServer.Close()
+
+			// muClient := mangaupdates.NewMangaUpdatesClient()
+
+
+			var got mangaupdates.Result
+			// err := "TODO: implement search function then test"
+			// require.NoError(t, err)
+			assert.Equal(t, tc.expected, got)
+			assert.Equal(t, tc.statusCode, got.StatusCode)
+		})
 	}
+
 }
 
 /*
@@ -64,4 +110,3 @@ TODO:
 create a test client and send requests to endpoints and see if we get a response back either by httpstatuscode or getting a struct of info back
 */
 func TestDoRequest(t *testing.T) {}
-

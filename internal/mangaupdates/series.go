@@ -1,5 +1,10 @@
 package mangaupdates
 
+import (
+	"context"
+	"errors"
+)
+
 /*
 TODO:
 - implement relevant api functions for the app
@@ -10,12 +15,29 @@ TODO:
 */
 
 const BaseAPIURL string = "https://api.mangaupdates.com/v1"
-const searchSeries string = "/series/search"
-const getSeriesByID string = "/search/%v"
+const SearchSeriesURL string = BaseAPIURL + "/series/search"
+const GetSeriesByIDURL string = BaseAPIURL + "/search/%v"
 
+// NOTE: retrieve result of a 400 bad requests, endpoints also use this structure at 200 https check the api docs for more detail
+// https://api.mangaupdates.com/
+type Result struct {
+	StatusCode int
+	Response   Response
+}
+
+type Response struct {
+	Status  string                     `json:"status"`
+	Reason  string                     `json:"reason"`
+	Context map[string][]ContextErrors `json:"context"`
+}
+
+type ContextErrors struct {
+	Index  int      `json:"index"`
+	Errors []string `json:"errors"`
+}
 
 // NOTE: struct to send the payload to the search endpoint and get a list of mangas
-// TODO: all marked as enumtype create a type enum of the related fields to
+// POST /"https://api.mangaupdates.com/v1/series/search"
 type SearchSeriesRequest struct {
 	Search                string           `json:"search"`
 	AddedBy               int              `json:"added_by"`
@@ -31,7 +53,7 @@ type SearchSeriesRequest struct {
 	Page                  int              `json:"page"`
 	PerPage               int              `json:"perpage"`
 	Letter                string           `json:"letter"`
-	Genre                 []SeriesGenres   `json:"genre"` // <- TODO: find out all the genres from the site
+	Genre                 []SeriesGenres   `json:"genre"`
 	ExcludeGenre          []SeriesGenres   `json:"exclude_genre"`
 	OrderBy               SearchOrderBy    `json:"orderby"` // <- enumtype
 	Pending               bool             `json:"pending"`
@@ -39,7 +61,7 @@ type SearchSeriesRequest struct {
 	ExcludeFilteredGenres bool             `json:"exclude_filtered_genres"`
 }
 
-type SearchMangaResponse struct {
+type SearchedMangaResponse struct {
 	TotalHits int             `json:"total_hits"`
 	Page      int             `json:"page"`
 	PerPage   int             `json:"per_page"`
@@ -298,3 +320,42 @@ const (
 	SeriesIsOther            SeriesRelationship = "Other"
 )
 
+// NOTE: main functions to search series and get a series
+
+type SearchSeriesRequestOptsFunc func(*SearchSeriesRequest) error
+var SearchFieldCannotBeEmpty error = errors.New("Search must have a length between 1 and 400")
+
+func NewSearchSeriesRequest(search string, opts ...SearchSeriesRequestOptsFunc) (*SearchSeriesRequest, error) {
+	if search == "" {
+		return nil, SearchFieldCannotBeEmpty
+	}
+
+	r := &SearchSeriesRequest{
+		Search:  search,
+		Page:    1,
+		PerPage: 10, // for now ten results perpage we can change this later
+	}
+
+	if opts == nil {
+		return r, nil
+	}
+
+	for _, opt := range opts {
+		if err := opt(r); err != nil {
+			return nil, err
+		}
+	}
+	return r, nil
+}
+
+func WithGenre(genres ...SeriesGenres) SearchSeriesRequestOptsFunc {
+	return func(ssr *SearchSeriesRequest) error {
+		ssr.Genre = genres
+		return nil
+	}
+}
+
+// POST search a series: name is required and there are options to filter by to get a more accurate search
+func (ssr *SearchSeriesRequest) SearchSeries(ctx context.Context, url string, seriesName string) (*SearchedMangaResponse, error) {
+	return nil, nil
+}

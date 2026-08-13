@@ -7,30 +7,18 @@ import (
 	"net/http"
 )
 
-type Response struct {
-	StatusCode int                        `json:"-"`
-	Status     string                     `json:"status"`
-	Reason     string                     `json:"reason"`
-	Context    map[string][]ContextErrors `json:"context"`
-}
-
-type ContextErrors struct {
-	Index  int      `json:"index"`
-	Errors []string `json:"errors"`
-}
-
 // TODO:figure out if authtoken is needed, if needed create a default client and an authclient
 type MangaUpdatesClient struct {
 	client    *http.Client
 	header    http.Header
 	baseURL   string
-	AuthToken string
+	authToken string
 }
 
 func NewMangaUpdatesClient() *MangaUpdatesClient {
 	client := http.Client{}
 	header := http.Header{}
-	header.Set("Content-Type", "applicaton/json")
+	header.Set("Content-Type", "application/json")
 
 	return &MangaUpdatesClient{
 		client:  &client,
@@ -52,7 +40,7 @@ func (muc *MangaUpdatesClient) doRequest(ctx context.Context, method string, url
 		return nil, err
 	}
 
-	return resp, err
+	return resp, nil
 }
 
 func (muc *MangaUpdatesClient) RequestAndDecode(ctx context.Context, method string, url string, body io.Reader, responseType any) error {
@@ -62,6 +50,7 @@ func (muc *MangaUpdatesClient) RequestAndDecode(ctx context.Context, method stri
 	}
 	defer resp.Body.Close()
 
+	// TODO: assert that a pointer to a struct is being passed to decode()
 	err = json.NewDecoder(resp.Body).Decode(responseType)
 	return err
 }
