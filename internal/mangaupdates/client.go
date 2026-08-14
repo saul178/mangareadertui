@@ -3,11 +3,21 @@ package mangaupdates
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
-	"strings"
 )
+
+type Response struct {
+	StatusCode int                        `json:"-"`
+	Status     string                     `json:"status"`
+	Reason     string                     `json:"reason"`
+	Context    map[string][]ContextErrors `json:"context"`
+}
+
+type ContextErrors struct {
+	Index  int      `json:"index"`
+	Errors []string `json:"errors"`
+}
 
 // TODO:figure out if authtoken is needed, if needed create a default client and an authclient
 type MangaUpdatesClient struct {
@@ -29,52 +39,29 @@ func NewMangaUpdatesClient() *MangaUpdatesClient {
 	}
 }
 
-// need test soon for these funcs to see if they work as intended
-func (r *Response) GetResponsDetails() string {
-	var b strings.Builder
-	if r.Status != "" || r.Reason != "" {
-		fmt.Fprintf(&b, "[STATUS CODE]: (%d)\n[STATUS]: %s\n[REASON]: %s\n", r.StatusCode, r.Status, r.Reason)
-	}
-	// if context is empty we can assume that we didnt encounter any errors since the api only returns Contexts on errors
-	if len(r.Context) == 0 {
-		return b.String()
-	}
-
-	fields := make([]string, 0, len(r.Context))
-	for c := range r.Context {
-		fields = append(fields, c)
-	}
-
-	for _, f := range fields {
-		for _, ce := range r.Context[f] {
-			fmt.Fprintf(&b, "%s: %s\n", f, strings.Join(ce.Errors, "; "))
-		}
-	}
-
-	return b.String()
-
-}
-
-func (muc *MangaUpdatesClient) DoRequest(ctx context.Context, method string, url string, body io.Reader) (any, error) {
+func (muc *MangaUpdatesClient) doRequest(ctx context.Context, method string, url string, body io.Reader) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, err
 	}
 
 	req.Header = muc.header
+
 	resp, err := muc.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		defer resp.Body.Close()
+	return resp, err
+}
 
-		var er Response
-		if err = json.NewDecoder(resp.Body).Decode(&er); err != nil {
-			return nil, err
-		}
-		return nil, fmt.Errorf("non 200 http response: %v", er.GetResponsDetails())
+func (muc *MangaUpdatesClient) RequestAndDecode(ctx context.Context, method string, url string, body io.Reader, responseType any) error {
+	resp, err := muc.doRequest(ctx, method, url, body)
+	if err != nil {
+		return err
 	}
-	return resp, nil
+	defer resp.Body.Close()
+
+	err = json.NewDecoder(resp.Body).Decode(responseType)
+	return err
 }
