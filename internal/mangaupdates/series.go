@@ -7,12 +7,14 @@ import (
 
 /*
 TODO:
+- look at the api and omitonempty on fields that are not required
 - implement relevant api functions for the app
 - implement api to search mangas
 - get a specific manga from search results
 - implement caching results
-- at some point move the models and defined types to their own file as this file gets bigger
-- better name for the enum types
+
+- potential issues to look at:
+Series embeds SeriesSearchDataList. Embedding works with encoding/json (fields get flattened), but Series has LatestChapter and Genres from the list type that the full endpoint may shape differently. Test against a real response and make sure nothing decodes to zero values unexpectedly.
 */
 
 const BaseAPIURL string = "https://api.mangaupdates.com/v1"
@@ -175,7 +177,9 @@ type AssociatedTitles struct {
 	Title string `json:"title"`
 }
 
-// NOTE: these are defined enum types that the api expects from certain fields
+// NOTE: ===========================================================================
+// these are defined enum types that the api expects from certain fields
+// =================================================================================
 // Search by title or description
 type SearchType string
 
@@ -214,7 +218,7 @@ const (
 	OrderByRating             SearchOrderBy = "rating"
 	OrderByYear               SearchOrderBy = "year"
 	OrderByDateAdded          SearchOrderBy = "date_added"
-	OrderByWeekePosition      SearchOrderBy = "week_pos"
+	OrderByWeekPosition       SearchOrderBy = "week_pos"
 	OrderByMonthOnePosition   SearchOrderBy = "month1_pos"
 	OrderByMonthThreePosition SearchOrderBy = "month3_pos"
 	OrderByMonthSixPosition   SearchOrderBy = "month6_pos"
@@ -246,6 +250,7 @@ const (
 	FrenchType     SeriesType = "French"
 	SpanishType    SeriesType = "Spanish"
 	GermanType     SeriesType = "German"
+	RussianType    SeriesType = "Russian"
 )
 
 // The Genres stated by the api to filter searches
@@ -275,7 +280,7 @@ const (
 	Hentai        SeriesGenresType = "Hentai"
 	Historical    SeriesGenresType = "Historical"
 	Horror        SeriesGenresType = "Horror"
-	MartialArts   SeriesGenresType = "MartialArts"
+	MartialArts   SeriesGenresType = "Martial Arts"
 	Mature        SeriesGenresType = "Mature"
 	Mecha         SeriesGenresType = "Mecha"
 	Mystery       SeriesGenresType = "Mystery"
@@ -326,11 +331,11 @@ const (
 
 type SearchSeriesRequestOptsFunc func(*SearchSeriesRequest) error
 
-var SearchFieldCannotBeEmpty error = errors.New("Search must have a length between 1 and 400")
+var ErrorSearchFieldCannotBeEmpty error = errors.New("Search must have a length between 1 and 400")
 
 func NewSearchSeriesRequest(search string, opts ...SearchSeriesRequestOptsFunc) (*SearchSeriesRequest, error) {
 	if search == "" {
-		return nil, SearchFieldCannotBeEmpty
+		return nil, ErrorSearchFieldCannotBeEmpty
 	}
 
 	r := &SearchSeriesRequest{
@@ -354,6 +359,34 @@ func NewSearchSeriesRequest(search string, opts ...SearchSeriesRequestOptsFunc) 
 func WithGenre(genres ...SeriesGenresType) SearchSeriesRequestOptsFunc {
 	return func(ssr *SearchSeriesRequest) error {
 		ssr.Genre = genres
+		return nil
+	}
+}
+
+func WithExcludedGenre(genres ...SeriesGenresType) SearchSeriesRequestOptsFunc {
+	return func(ssr *SearchSeriesRequest) error {
+		ssr.ExcludeGenre = append(ssr.ExcludeGenre, genres...)
+		return nil
+	}
+}
+
+func WithType(types ...SeriesType) SearchSeriesRequestOptsFunc {
+	return func(ssr *SearchSeriesRequest) error {
+		ssr.Type = append(ssr.Type, types...)
+		return nil
+	}
+}
+
+func WithFilterOutType(types ...SeriesType) SearchSeriesRequestOptsFunc {
+	return func(ssr *SearchSeriesRequest) error {
+		ssr.FilterType = append(ssr.FilterType, types...)
+		return nil
+	}
+}
+
+func WithFilters(filters ...SearchFilters) SearchSeriesRequestOptsFunc {
+	return func(ssr *SearchSeriesRequest) error {
+		ssr.Filters = append(ssr.Filters, filters...)
 		return nil
 	}
 }
