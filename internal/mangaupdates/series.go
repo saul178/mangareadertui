@@ -17,9 +17,14 @@ TODO:
 Series embeds SeriesSearchDataList. Embedding works with encoding/json (fields get flattened), but Series has LatestChapter and Genres from the list type that the full endpoint may shape differently. Test against a real response and make sure nothing decodes to zero values unexpectedly.
 */
 
-const BaseAPIURL string = "https://api.mangaupdates.com/v1"
-const SearchSeriesURL string = BaseAPIURL + "/series/search"
-const GetSeriesByIDURL string = BaseAPIURL + "/search/%v"
+const (
+	BaseAPIURL       string = "https://api.mangaupdates.com/v1"
+	SearchSeriesPath string = "/series/search"
+	GetSeriesPath    string = "/search/%v"
+
+	SearchSeriesURL  string = BaseAPIURL + SearchSeriesPath
+	GetSeriesByIDURL string = BaseAPIURL + GetSeriesPath
+)
 
 // NOTE: retrieve result of a 400 bad requests, endpoints also use this structure at 200 https check the api docs for more detail
 // https://api.mangaupdates.com/
@@ -43,25 +48,25 @@ type ContextErrors struct {
 // POST /"https://api.mangaupdates.com/v1/series/search"
 type SearchSeriesRequest struct {
 	Search                string             `json:"search"`
-	AddedBy               int                `json:"added_by"`
-	SType                 SearchType         `json:"stype"`    // <- enumtype
-	Licensed              IsSeriesLicensed   `json:"licensed"` // <- enumtype
-	Type                  []SeriesType       `json:"type"`
-	Year                  string             `json:"year"`
-	FilterType            []SeriesType       `json:"filter_types"` // <- NOTE: filters OUT certain series type EX: filter manga == to no manga on search response
-	Category              []string           `json:"category"`     // <- NOTE: this will be an interesting field to filter from since it's voted by community
-	PubName               string             `json:"pubname"`
-	Filters               []SearchFilters    `json:"filters"` // <- enumtype
-	List                  string             `json:"list"`
+	AddedBy               int                `json:"added_by,omitempty"`
+	SType                 SearchType         `json:"stype,omitempty"`    // <- enumtype
+	Licensed              IsSeriesLicensed   `json:"licensed,omitempty"` // <- enumtype
+	Type                  []SeriesType       `json:"type,omitempty"`
+	Year                  string             `json:"year,omitempty"`
+	FilterType            []SeriesType       `json:"filter_types,omitempty"` // <- NOTE: filters OUT certain series type EX: filter manga == to no manga on search response
+	Category              []string           `json:"category,omitempty"`     // <- NOTE: this will be an interesting field to filter from since it's voted by community
+	PubName               string             `json:"pubname,omitempty"`
+	Filters               []SearchFilters    `json:"filters,omitempty"` // <- enumtype
+	List                  string             `json:"list,omitempty"`
 	Page                  int                `json:"page"`
 	PerPage               int                `json:"perpage"`
-	Letter                string             `json:"letter"`
-	Genre                 []SeriesGenresType `json:"genre"`
-	ExcludeGenre          []SeriesGenresType `json:"exclude_genre"`
-	OrderBy               SearchOrderBy      `json:"orderby"` // <- enumtype
-	Pending               bool               `json:"pending"`
-	IncludeRankMetadata   bool               `json:"include_rank_metadata"`
-	ExcludeFilteredGenres bool               `json:"exclude_filtered_genres"`
+	Letter                string             `json:"letter,omitempty"`
+	Genre                 []SeriesGenresType `json:"genre,omitempty"`
+	ExcludeGenre          []SeriesGenresType `json:"exclude_genre,omitempty"`
+	OrderBy               SearchOrderBy      `json:"orderby,omitempty"` // <- enumtype
+	Pending               bool               `json:"pending,omitempty"`
+	IncludeRankMetadata   bool               `json:"include_rank_metadata,omitempty"`
+	ExcludeFilteredGenres bool               `json:"exclude_filtered_genres,omitempty"`
 }
 
 // NOTE: the list of responses we get back from the api when searching for a series
@@ -327,8 +332,60 @@ const (
 	SeriesIsOther            SeriesRelationship = "Other"
 )
 
-// NOTE: main functions to search series and get a series
+// ==================================================================================================================
+// NOTE:Exporting a list of valid options to render on the ui when searching for a manga
+// ==================================================================================================================
 
+func AllSeriesTypes() []SeriesType {
+	return []SeriesType{
+		ArtbookType, DoujinshiType, DramaCDType, FilipinoType, IndonesianType, MangaType, ManhwaType,
+		ManhuaType, NovelType, OELType, ThaiType, VietnameseType, MalaysianType, NordicType, FrenchType,
+		SpanishType, GermanType, RussianType,
+	}
+}
+
+func AllGenres() []SeriesGenresType {
+	return []SeriesGenresType{
+		Josei, Lolicon, Seinen, Shotacon, Shoujo, ShoujoAi, Shounen, ShounenAi, Yaoi,
+		Yuri, Action, Adult, Adventure, Comedy, Doujinshi, Drama, Ecchi, Fantasy, GenderBender, Harem,
+		Hentai, Historical, Horror, MartialArts, Mature, Mecha, Mystery, Psychological, Romance, SchoolLife,
+		SciFi, SliceOfLife, Smut, Sports, Supernatural, Tragedy,
+	}
+}
+
+func AllSearchFilters() []SearchFilters {
+	return []SearchFilters{
+		SeriesScanlated, SeriesCompleted, SeriesOneshots, SeriesNoOneshots, SeriesSomeReleases,
+		SeriesNoReleases,
+	}
+}
+
+func AllSearchOrdersBy() []SearchOrderBy {
+	return []SearchOrderBy{
+		OrderByScore, OrderByTitle, OrderByRank, OrderByRating, OrderByYear, OrderByDateAdded,
+		OrderByWeekPosition, OrderByMonthOnePosition, OrderByMonthThreePosition,
+		OrderByMonthSixPosition, OrderByYearPosition, OrderByListReading, OrderByListWish,
+		OrderByListComplete, OrderByListUnfinished,
+	}
+}
+
+func AllLicensed() []IsSeriesLicensed {
+	return []IsSeriesLicensed{
+		IsLicensed,
+		IsNotLicensed,
+	}
+}
+
+func AllSearchType() []SearchType {
+	return []SearchType{
+		SearchByTitle,
+		SearchByDescription,
+	}
+}
+
+// NOTE: =============================================================================================================
+// main functions to search series and get a series
+// ===================================================================================================================
 type SearchSeriesRequestOptsFunc func(*SearchSeriesRequest) error
 
 var ErrorSearchFieldCannotBeEmpty error = errors.New("Search must have a length between 1 and 400")
@@ -338,22 +395,24 @@ func NewSearchSeriesRequest(search string, opts ...SearchSeriesRequestOptsFunc) 
 		return nil, ErrorSearchFieldCannotBeEmpty
 	}
 
-	r := &SearchSeriesRequest{
+	req := &SearchSeriesRequest{
 		Search:  search,
 		Page:    1,
 		PerPage: 10, // for now ten results perpage we can change this later
 	}
 
+	// no options were provided so we return the default search
 	if opts == nil {
-		return r, nil
+		return req, nil
 	}
 
+	// append all the options added and request manga
 	for _, opt := range opts {
-		if err := opt(r); err != nil {
+		if err := opt(req); err != nil {
 			return nil, err
 		}
 	}
-	return r, nil
+	return req, nil
 }
 
 func WithGenre(genres ...SeriesGenresType) SearchSeriesRequestOptsFunc {
@@ -389,9 +448,4 @@ func WithFilters(filters ...SearchFilters) SearchSeriesRequestOptsFunc {
 		ssr.Filters = append(ssr.Filters, filters...)
 		return nil
 	}
-}
-
-// POST search a series: name is required and there are options to filter by to get a more accurate search
-func (ssr *SearchSeriesRequest) SearchSeries(ctx context.Context, url string, seriesName string) (*SearchedSeriesResponse, error) {
-	return nil, nil
 }
